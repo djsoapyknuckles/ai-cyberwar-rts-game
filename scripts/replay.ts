@@ -63,3 +63,9 @@ const game = runReplay(replay, (g) => {
   }
 });
 console.log(`winner: ${game.world.winner ?? 'none'} at ${clock(game.world.tick)} (seed ${replay.seed}, ${replay.commands.length} commands)`);
+const o = replay.opponent;
+if (o) {
+  const who = o.kind === 'llm' ? `LLM General (${o.model ?? '?'} via ${o.provider ?? '?'}, base ${o.strategy})` : `scripted ${o.strategy}`;
+  const blind = o.blind ? ` · blind test, guessed ${o.guess ?? 'nothing'}${o.guess ? (o.guess === o.kind ? ' (right)' : ' (wrong)') : ''}` : '';
+  console.log(`opponent: ${who}, difficulty ${o.difficulty}${blind}`);
+}

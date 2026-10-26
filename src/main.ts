@@ -39,7 +39,8 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { createRenderer, rendererKind, viewport } from './render/renderer.ts';
 import { createGestures, type Gesture } from './render/touch.ts';
 import { setWording, word } from './render/wording.ts';
-import { applyCommand, ECONOMY, factionView, issue, MAPS, spawnUnit, START, TICK_RATE, TILE, toReplay, type Command } from './sim/index.ts';
+import { applyCommand, ECONOMY, factionView, issue, MAPS, spawnUnit, START, TICK_RATE, TILE, toReplay, type Command, type OpponentInfo } from './sim/index.ts';
+import { recordGuess, revealText, type TallyStorage } from './render/blind.ts';
 
 const params = new URLSearchParams(location.search);
 // Phones close apps in the background: offer to pick up a saved match (scripted opponents only, see resume.ts).
@@ -129,6 +130,12 @@ if (useLlm && cloud) {
 }
 const general = client ? createGeneral('ai', createLlmBrain(client, 'ai'), strategy, { seed }) : null;
 const aiName = blind ? 'AI (blind test)' : general ? `The Model (${model})` : `AI (${strategy.name}) · ${level.label}`;
+// Who played the AI side, saved with the replay; a blind test also records the player's guess.
+const opponent: OpponentInfo = {
+  kind: general ? 'llm' : 'scripted', strategy: baseStrategy.name, difficulty: difficultyId, blind,
+  ...(general ? { model, provider: cloud ? 'openai' as const : 'ollama' as const } : {}),
+};
+const tallyStore: TallyStorage = { getItem: (k) => localStorage.getItem(k), setItem: (k, v) => localStorage.setItem(k, v) };
 // ?map=duel|long picks the map (#5); unknown ids fall back to Duel.
 const mapParam = resume?.mapId ?? params.get('map') ?? saved.map ?? '';
 const mapId = MAPS[mapParam] ? mapParam : 'duel';
@@ -578,12 +585,22 @@ function frame(now: number): void {
   for (const gesture of gestures.tick(now)) onGesture(gesture);
   if (world.winner && !summaryShown) {
     summaryShown = true;
-    const reveal = blind ? `<p><b>Blind test:</b> you played ${general ? `the LLM General (${model})` : `the scripted ${strategy.name} bot`}.</p>` : '';
-    hud.showSummary(reveal + summaryHtml(stats, world.winner), (el) => {
+    // Blind test: guess first, then the reveal and the running tally (Gate 2 evidence without replay analysis).
+    const guessBox = blind ? `<div id="blind-guess"><p><b>Blind test:</b> who did you play? Guess to see the answer.</p>
+      <button type="button" data-guess="llm">LLM General</button> <button type="button" data-guess="scripted">Scripted bot</button></div>` : '';
+    hud.showSummary(guessBox + summaryHtml(stats, world.winner), (el) => {
       attachSummaryHover(el, stats);
+      const box = el.querySelector<HTMLElement>('#blind-guess');
+      box?.addEventListener('click', (e) => {
+        const guess = (e.target as HTMLElement).closest<HTMLButtonElement>('button')?.dataset.guess;
+        if ((guess !== 'llm' && guess !== 'scripted') || opponent.guess) return;
+        const reveal = document.createElement('p');
+        reveal.textContent = revealText(opponent, recordGuess(tallyStore, opponent, guess));
+        box.replaceChildren(reveal);
+      });
       el.querySelector('#save-replay')?.addEventListener('click', () => {
-        // Seed + command log + versions: enough to re-run the match exactly.
-        const blob = new Blob([JSON.stringify(toReplay(game))], { type: 'application/json' });
+        // Seed + command log + versions: enough to re-run the match exactly. Plus who the opponent was.
+        const blob = new Blob([JSON.stringify({ ...toReplay(game), opponent })], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = `replay-${world.winner}-seed${seed}-${Math.trunc(world.tick / TICK_RATE)}s.json`;

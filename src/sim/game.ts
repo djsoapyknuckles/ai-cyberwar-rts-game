@@ -29,6 +29,20 @@ export interface Replay {
   mapId: string;
   ticks: number;
   commands: StampedCommand[];
+  /** Who played the AI side. Written by the browser for the record; not needed to re-run the match. */
+  opponent?: OpponentInfo;
+}
+
+export interface OpponentInfo {
+  kind: 'scripted' | 'llm';
+  /** Scripted strategy, or the LLM General's base strategy. */
+  strategy: string;
+  model?: string;
+  provider?: 'ollama' | 'openai';
+  difficulty: string;
+  /** A blind test, and the player's guess if they made one before the reveal. */
+  blind: boolean;
+  guess?: 'llm' | 'scripted';
 }
 
 export function createGame(seed: number, mapId = 'duel'): Game {
