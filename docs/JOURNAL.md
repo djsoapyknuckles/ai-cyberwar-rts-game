@@ -2,6 +2,11 @@
 
 The story of building this game, newest first. Wins, failures, surprises, and what the agents did well or badly. Anyone can add an entry.
 
+## 2026-10-26 — First blind test, and a better way to keep score
+
+- The owner played the first Gate 2 blind test and guessed "the LLM". The replay held only commands, so checking it meant re-running the match against the scripted Boom bot with the owner's clicks. The AI's commands matched for three orders, then split at tick 40, just when the General's first turn lands. LLM, as guessed. The first control check failed for an instructive reason: a bot's clicks go through the reaction delay, a person's don't, so the same commands were applied in a different order.
+- Now the game keeps score itself: a blind match ends by asking "who did you play?", then reveals the answer and a running tally ("4 of 5 guessed right"). Every saved replay also says who the opponent was, including the guess.
+
 ## 2026-10-26 — The local General joins the menu
 
 - The new setup screen (#51) offered the cloud General but not the local one, and no blind test, and it ran the General at the chosen difficulty (Normal by default: half the actions, a 1 s handicap, no counter-building). Now the screen asks the local Ollama which models it has. If one answers, it offers "AI General (local)" with a model choice and "Blind test". Players without Ollama, and every phone, never see an option that can't work. The General and the blind test always play at full strength, as benchmarked.
