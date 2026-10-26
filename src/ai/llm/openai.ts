@@ -5,11 +5,14 @@ import type { LlmClient } from './client.ts';
 
 export interface OpenAiOptions {
   model: string;
+  /** Empty sends no Authorization header (a local Voxta that lets apps in without a key). */
   apiKey: string;
   /** Default https://api.openai.com/v1. */
   baseUrl?: string;
   /** Omitted unless set: some models only accept their default temperature. */
   temperature?: number;
+  /** Reply length cap, sent as max_tokens. Omitted unless set: some OpenAI models reject max_tokens. */
+  maxTokens?: number;
   /** Injected in tests. */
   fetch?: typeof fetch;
 }
@@ -28,7 +31,7 @@ export function createOpenAiClient(opts: OpenAiOptions): LlmClient {
       // as a bare network error. Say what to check instead of "Failed to fetch".
       const res = await doFetch(`${base}/chat/completions`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${opts.apiKey}` },
+        headers: { 'content-type': 'application/json', ...(opts.apiKey ? { authorization: `Bearer ${opts.apiKey}` } : {}) },
         body: JSON.stringify({
           model: opts.model,
           messages: [{ role: 'system', content: req.system }, { role: 'user', content: req.user }],
@@ -36,6 +39,7 @@ export function createOpenAiClient(opts: OpenAiOptions): LlmClient {
           // validator checks the shape (tools.ts), so a reply that drifts from the schema is caught there.
           response_format: { type: 'json_object' },
           ...(opts.temperature === undefined ? {} : { temperature: opts.temperature }),
+          ...(opts.maxTokens === undefined ? {} : { max_tokens: opts.maxTokens }),
         }),
         signal,
       }).catch((e: unknown) => {

@@ -20,10 +20,11 @@ const OPPONENT_TEXT: Record<string, [string, string]> = {
   brutal: ['Brutal', 'A fast army with full micro from minute one. For veterans.'],
   llm: ['AI General (cloud)', 'A language model commands the AI, through your own OpenAI API key. Always at full strength.'],
   'llm-local': ['AI General (local)', 'A language model on this computer (Ollama) commands the AI. Free and private. Always at full strength.'],
+  'llm-voxta': ['AI General (Voxta)', 'Your own Voxta server commands the AI, with whatever text model you set up in Voxta. Always at full strength.'],
   blind: ['Blind test', 'The local AI General or the scripted Boom bot, at random, both at full strength. You learn which after the match.'],
 };
 /** Opponents that ignore difficulty: the General is benchmarked at full strength, and a blind test must be fair. */
-export const FULL_STRENGTH = new Set(['llm', 'llm-local', 'blind']);
+export const FULL_STRENGTH = new Set(['llm', 'llm-local', 'llm-voxta', 'blind']);
 
 const VIEWS: [string, string][] = [['pixi', 'Top-down'], ['iso', 'Isometric'], ['three', '3D']];
 

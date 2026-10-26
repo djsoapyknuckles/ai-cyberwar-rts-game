@@ -38,7 +38,7 @@ export interface OpponentInfo {
   /** Scripted strategy, or the LLM General's base strategy. */
   strategy: string;
   model?: string;
-  provider?: 'ollama' | 'openai';
+  provider?: 'ollama' | 'openai' | 'voxta';
   difficulty: string;
   /** A blind test, and the player's guess if they made one before the reveal. */
   blind: boolean;

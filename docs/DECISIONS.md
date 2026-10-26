@@ -2,6 +2,16 @@
 
 Newest first. Each entry: date, decision, options considered, reason. Changes to design pillars need owner approval.
 
+## D-022 — 2026-10-26 — Voxta as an LLM provider for the General
+- **Decision:** players can run the General on their own Voxta server. Voxta serves an OpenAI-compatible `/v1/chat/completions` that answers with whatever text model the player set up in Voxta (local or cloud), so the existing OpenAI-compatible client is reused (`src/ai/llm/voxta.ts`).
+  - **Browser:** "AI General (Voxta)" on the setup screen, offered only when a Voxta answers on this machine. Address is always `localhost` (port from `&voxtaPort=`, default 5384), so a link can never send a Voxta key elsewhere. A key (Voxta API key with the `inference` scope) is asked for only when Voxta requires one, and kept in its own slot (session by default, "remember" for this device).
+  - **Headless:** `--provider voxta`, key from `VOXTA_API_KEY`, optional `VOXTA_URL`.
+  - **Player setup:** the game's address must be in Voxta's `Cors:AllowedOrigins`.
+- **Limits:** Voxta ignores the model name and does not forward `response_format`, so replies are not schema-constrained; the turn validator catches drift (watch the invalid-command rate per model). Without `max_tokens`, Voxta uses the profile's reply length, which cut turns off mid-JSON, so the Voxta client always sends `max_tokens: 1024`.
+- **Measured (2026-10-26, owner's Voxta, Gate 2 head-to-head, seeds 1–30):** 83% vs the control's 53% (+30); invalid-command rate 0.1% (4 of 2,928); p95 latency 2 s. Passes the Gate 2 numbers.
+- **Next:** a Voxta *character* as the General (voice, persona, player voice), drafted as `docs/proposals/0004-voxta-general.md`; needs its own decision.
+- **Approved:** owner, 2026-10-26.
+
 ## D-021 — 2026-10-26 — Gate 2 passed; qwen3:8b is the default local model
 - **Decision:** Phase 2 (the LLM General) is complete. The default local model is **qwen3:8b** (Ollama, thinking off, 4,096-token context). The default cloud model is chosen once a key is available to run the Gate 2 head-to-head with (#29).
 - **Evidence (all Gate 2 criteria):**
