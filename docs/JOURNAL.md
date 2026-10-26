@@ -2,6 +2,12 @@
 
 The story of building this game, newest first. Wins, failures, surprises, and what the agents did well or badly. Anyone can add an entry.
 
+## 2026-10-26 — The owner can tell
+
+- Gate 2's blind test is passed: 4 of 4 guessed right, two LLM matches and two scripted ones. The owner: "I was able to clearly tell whether I was playing against the LLM vs just a scripted bot."
+- What gave it away matched the replays. The scripted Boom bot's counter-building is real but gradual: against a Red Team-heavy army it leaned only slightly toward the counter, which reads as not adapting. The LLM's opening differed in small ways a player still felt: an extra early Hunter Drone from its own `train` orders, two Server Racks at 1:20 and 1:32 from its build plan, and workers lighting fiber instead of going back for the contested center.
+- The owner picked qwen3:8b as the default local model, and **Gate 2 is passed** (D-021). Phase 2 took three days of calendar time, and its most useful lesson was about baselines: twice, a benchmark looked good only because the thing it compared against shared the LLM's bug.
+
 ## 2026-10-26 — First blind test, and a better way to keep score
 
 - The owner played the first Gate 2 blind test and guessed "the LLM". The replay held only commands, so checking it meant re-running the match against the scripted Boom bot with the owner's clicks. The AI's commands matched for three orders, then split at tick 40, just when the General's first turn lands. LLM, as guessed. The first control check failed for an instructive reason: a bot's clicks go through the reaction delay, a person's don't, so the same commands were applied in a different order.
