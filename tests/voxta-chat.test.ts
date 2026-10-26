@@ -35,6 +35,7 @@ function fakeVoxta(script: { greeting?: boolean; reply?: 'normal' | 'silent' | '
         if (script.reply === 'error') { push({ $type: 'chatSessionError', message: 'model unavailable' }); return; }
         if (script.reply === 'close') { emit('close', { code: 1006 }); return; }
         reply('r1', 'Your center is mine.', [
+          { $type: 'replyChunk', messageId: 'r1', text: 'Said before the calls.', audioUrl: 'silence:1' },
           { $type: 'toolCallRequest', requestId: 'q1', name: 'attack_sector', arguments: '{"sector":"C"}' },
           { $type: 'replyToolCall', toolCallId: 't1', name: 'attack_sector' },
           { $type: 'toolCallRequest', requestId: 'q2', name: 'set_army_mix', arguments: 'not json' },

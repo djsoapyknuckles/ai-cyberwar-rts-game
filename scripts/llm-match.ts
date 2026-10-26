@@ -5,6 +5,8 @@
 // control on the same seeds, invalid-command rate, p95 latency.
 // Usage: npm run llm-match -- --model qwen3:8b [--matches 30] [--seed 1] [--human control|all|boom|rush|turtle] [--base boom]
 //   [--minutes 20] [--no-think] [--chat] [--with-control] [--control] [--out results.json]
+// --provider voxta-chat [--character name]: a Voxta character plays the General (D-023), one chat per match;
+//   key (chat scope) from VOXTA_API_KEY; first character if --character is not given.
 // --with-control: also play the control on the same seeds and report the gap. --control: control only, no model.
 // --out: also save results, every General turn log and the summary as JSON (with game + data version).
 // Gate 2 (D-018): npm run llm-match -- --human control --matches 30 --with-control. The control-vs-control
@@ -12,6 +14,8 @@
 import { writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { createLlmBrain } from '../src/ai/llm/client.ts';
+import { createVoxtaBrain, VOXTA_TURN_TIMEOUT } from '../src/ai/llm/voxta-brain.ts';
+import { createVoxtaChat } from '../src/ai/llm/voxta-chat.ts';
 import { clientFromArgs } from './llm-provider.ts';
 import { createControl } from '../src/ai/llm/control.ts';
 import { createGeneral, type TurnLog } from '../src/ai/llm/general.ts';
@@ -37,6 +41,7 @@ const { values } = parseArgs({
     'with-control': { type: 'boolean', default: false },
     control: { type: 'boolean', default: false },
     out: { type: 'string' },
+    character: { type: 'string' },
   },
 });
 const base = STRATEGIES[values.base];
@@ -52,7 +57,24 @@ if (!base || !opponents) {
   process.exit(2);
 }
 
-const client = clientFromArgs(values);
+// A Voxta character keeps its own chat per match, so it isn't an LlmClient; find the character once.
+const voxtaChat = values.provider === 'voxta-chat';
+const newChat = () => createVoxtaChat({ apiKey: process.env.VOXTA_API_KEY ?? '' });
+let character: { id: string; name: string } | undefined;
+if (voxtaChat) {
+  const probe = newChat();
+  const list = await probe.characters();
+  probe.close();
+  character = values.character ? list.find((c) => c.name === values.character) : list[0];
+  if (!character) {
+    console.error(`no Voxta character${values.character ? ` named "${values.character}"` : ''}; have: ${list.map((c) => c.name).join(', ')}`);
+    process.exit(2);
+  }
+}
+const llmClient = voxtaChat ? null : clientFromArgs(values);
+const client = { name: llmClient?.name ?? `voxta-chat:${character!.name}` };
+/** Called after each match: ends the match's Voxta chat. */
+let endMatch = () => {};
 const n = Number(values.matches);
 const maxTicks = Number(values.minutes) * 60 * TICK_RATE;
 
@@ -63,6 +85,7 @@ async function play(general: MatchRecord['general'], make: (seed: number) => Con
     const ai = make(seed);
     const start = performance.now();
     const r = await runMatchAsync({ seed, maxTicks, human: human.make(seed), ai });
+    endMatch();
     const log = verbose && 'log' in ai ? ai.log as TurnLog[] : [];
     records.push({ general, opponent: human.name, seed, winner: r.winner, ticks: r.ticks, turns: log });
     if (verbose && 'log' in ai) {
@@ -76,7 +99,12 @@ async function play(general: MatchRecord['general'], make: (seed: number) => Con
 }
 
 const records: MatchRecord[] = [];
-const model = (seed: number) => createGeneral('ai', createLlmBrain(client, 'ai'), base, { seed, lockstep: true });
+const model = (seed: number) => {
+  if (llmClient) return createGeneral('ai', createLlmBrain(llmClient, 'ai'), base, { seed, lockstep: true });
+  const brain = createVoxtaBrain({ chat: newChat(), characterId: character!.id, faction: 'ai' });
+  endMatch = () => brain.close();
+  return createGeneral('ai', brain, base, { seed, lockstep: true, timeout: VOXTA_TURN_TIMEOUT });
+};
 const control = (seed: number) => createControl('ai', base, seed);
 const runModel = !values.control;
 const runControl = values.control || values['with-control'];
