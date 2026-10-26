@@ -5,9 +5,7 @@ import { pretty, type CardButton } from './card.ts';
 import { renderGuide } from './guide.ts';
 import { jobText } from './jobs.ts';
 import { HOTKEYS } from './input.ts';
-import { ALERT_PREFIX, createSounds, cueFor } from './sound.ts';
-
-export const POWER_FULL_ALERT = `${ALERT_PREFIX.power}: new units will wait. Claim substations for more Power.`;
+import { word } from './wording.ts';
 
 export interface Hud {
   update(world: World, view: FactionView, selected: Set<number>, modeText: string, speed: number, paused: boolean, fps: number): void;
@@ -16,24 +14,32 @@ export interface Hud {
   setCard(buttons: CardButton[], onPress: (b: CardButton) => void): void;
   tooltip(text: string | null, sx: number, sy: number): void;
   showStart(onStart: () => void): void;
-  alert(text: string): void;
+  /** `at`: where it happened; the alert is then tappable and jumps the camera there. */
+  alert(text: string, at?: [number, number]): void;
+  onAlertTap(fn: (at: [number, number]) => void): void;
   setIntel(html: string): void;
   /** Replace the end-of-match banner with the post-match summary; `attach` wires up its interactivity. */
   showSummary(html: string, attach: (el: HTMLElement) => void): void;
   onNarrowSelection(fn: (ids: number[]) => void): void;
+  /** Called with every alert line as it is raised (sound cues, #4). */
+  onAlert(fn: (text: string) => void): void;
+  /** Wires the sound on/off button: `toggle` flips it and returns whether sounds are now on. */
+  setSoundToggle(on: boolean, toggle: () => boolean): void;
 }
+
+export const POWER_FULL_ALERT = '⚡ Power full: new units will wait. Claim substations for more Power.';
 
 export function createHud(root: HTMLElement, aiName: string): Hud {
   root.innerHTML = `
     <div id="hud-top" class="hud-panel">
-      <span class="t-time" id="t-time"></span>
+      <span class="t-time"><i class="ico"></i><span id="t-time"></span></span>
       <span class="t-state" id="t-state"></span>
-      <span class="t-data" title="Data: spend on units and buildings">Data <b id="t-data"></b> <span id="t-inc"></span></span>
-      <span class="t-power" title="Power is your unit limit: every unit and building draws Power; your NOC and each substation you hold supply it. When it's full, new units wait.">Power <span id="t-power"></span></span>
-      <span class="t-compute" title="Compute: training speed, shared by all your buildings that are training. Server Racks add 5; extra SOCs add nothing.">Compute <b id="t-compute"></b></span>
-      <span class="t-plug" title="Pull the Plug: black out a zone, freezing AI units and unpowering buildings">Plug <span id="t-plug"></span></span>
+      <span class="t-data" title="Data: spend on units and buildings"><i class="ico"></i><i class="lbl">Data</i> <b id="t-data"></b> <span class="inc" id="t-inc"></span></span>
+      <span class="t-power" title="Power is your unit limit: every unit and building draws Power; your NOC and each substation you hold supply it. When it's full, new units wait."><i class="ico"></i><i class="lbl">Power</i> <span id="t-power"></span></span>
+      <span class="t-compute" title="Compute: training speed, shared by all your buildings that are training. Server Racks add 5; extra SOCs add nothing."><i class="ico"></i><i class="lbl">Compute</i> <b id="t-compute"></b></span>
+      <span class="t-plug" title="Pull the Plug: black out a zone, freezing AI units and unpowering buildings"><i class="ico"></i><i class="lbl">Plug</i> <span id="t-plug"></span></span>
       <span class="dim t-meta" id="t-meta"></span>
-      <button type="button" id="t-sound" style="background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer"></button>
+      <button type="button" id="t-sound" title="Alert sounds on/off (N)"></button>
     </div>
     <div id="hud-mode" class="hud-panel"></div>
     <div id="hud-messages"></div>
@@ -50,21 +56,10 @@ export function createHud(root: HTMLElement, aiName: string): Hud {
     <pre id="hud-text" class="hud-panel" hidden></pre>
     <div id="hud-banner" hidden></div>`;
   const $ = (id: string) => root.querySelector<HTMLElement>(`#${id}`)!;
-  // Alert sounds: silent until Start is clicked (or, with no start screen, the first click or key press).
-  const sounds = createSounds();
-  let startPending = false;
-  const unlockOnGesture = () => { if (!startPending) sounds.unlock(); };
-  window.addEventListener('pointerdown', unlockOnGesture);
-  window.addEventListener('keydown', unlockOnGesture);
-  const soundButton = $('t-sound');
-  const showSound = () => {
-    soundButton.textContent = sounds.muted ? '🔕' : '🔔';
-    soundButton.title = `Alert sounds ${sounds.muted ? 'off' : 'on'} (click to turn ${sounds.muted ? 'on' : 'off'})`;
-    soundButton.setAttribute('aria-pressed', String(!sounds.muted));
-  };
-  soundButton.addEventListener('click', () => { sounds.toggleMute(); showSound(); });
-  showSound();
-  const ring = (text: string) => { const cue = cueFor(text); if (cue) sounds.play(cue); };
+  $('hud-alerts').addEventListener('click', (e) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>('.jump');
+    if (el) onAlertTap([Number(el.dataset.x), Number(el.dataset.y)]);
+  });
   const messages: { text: string; at: number }[] = [];
   // Write to the DOM only when content changes: rewriting every frame causes needless repaints.
   const shown = new Map<string, string>();
@@ -74,6 +69,7 @@ export function createHud(root: HTMLElement, aiName: string): Hud {
   let cardKey = '';
   let selKey: string | null = null;
   let onNarrow: (ids: number[]) => void = () => {};
+  let onAlert: (text: string) => void = () => {};
   const icon: Record<string, string> = { worker: '●', fast: '▲', ranged: '◆', tank: '■' };
   const bar = (hp: number, max: number) => {
     const f = Math.max(0, Math.min(1, hp / max));
@@ -113,11 +109,12 @@ export function createHud(root: HTMLElement, aiName: string): Hud {
         + `${bar(b.hp, BUILDINGS[b.type].hp)} <span class="dim">${b.hp}/${BUILDINGS[b.type].hp} hp</span>`
         + (t ? `<div>${trainingText(t)}</div>` : '');
     } else {
-      el.innerHTML = '<span class="dim">Nothing selected. Drag a box or click a unit.</span>';
+      el.innerHTML = `<span class="dim">${word('Nothing selected. Drag a box or click a unit.')}</span>`;
     }
   }
   let intelHtml = '';
-  const alerts: { text: string; at: number }[] = [];
+  const alerts: { text: string; at: number; where?: [number, number] }[] = [];
+  let onAlertTap: (at: [number, number]) => void = () => {};
   let guideKey = '';
   let powerWasFull = false;
   let summaryShown = false;
@@ -128,18 +125,17 @@ export function createHud(root: HTMLElement, aiName: string): Hud {
   return {
     update(world, v, selected, modeText, speed, paused, fps) {
       const secs = Math.trunc(world.tick / TICK_RATE);
-      const plug = v.plugReadyIn === 0 ? '<b class="ready">READY</b>' : `${Math.ceil((v.plugReadyIn ?? 0) / TICK_RATE)}s`;
       // The bar's layout is fixed; only values that changed are written, so nothing shifts or repaints
       // needlessly. The fps reading refreshes twice a second.
       const now0 = performance.now();
       if (now0 - fpsAt > 500) { fpsAt = now0; fpsShown = fps; }
-      setHtml('t-time', `⏱ ${Math.trunc(secs / 60)}:${String(secs % 60).padStart(2, '0')}`);
-      setHtml('t-state', `${paused ? '<b>PAUSED</b> ' : ''}${speed !== 1 ? `×${speed}` : ''}`);
+      setHtml('t-time', `${Math.trunc(secs / 60)}:${String(secs % 60).padStart(2, '0')}`);
+      setHtml('t-state', `${paused ? 'PAUSED' : ''}${paused && speed !== 1 ? ' ' : ''}${speed !== 1 ? `×${speed}` : ''}`);
       setHtml('t-data', String(Math.trunc(v.data / MILLI)));
-      setHtml('t-inc', `(+${((v.income * TICK_RATE) / MILLI).toFixed(1)}/s)`);
+      setHtml('t-inc', `+${((v.income * TICK_RATE) / MILLI).toFixed(1)}/s`);
       setHtml('t-power', `<b${powerHeadroom(v) === 0 ? ' class="warn"' : ''}>${v.powerUsed}/${v.powerCap}${powerHeadroom(v) === 0 ? ' FULL' : ''}</b>`);
       setHtml('t-compute', String(v.compute));
-      setHtml('t-plug', plug);
+      setHtml('t-plug', `<b${v.plugReadyIn === 0 ? ' class="ready"' : ''}>${v.plugReadyIn === 0 ? 'READY' : `${Math.ceil((v.plugReadyIn ?? 0) / TICK_RATE)}s`}</b>`);
       setHtml('t-meta', `vs ${aiName} · ${fpsShown} fps`);
       $('hud-mode').textContent = modeText;
       $('hud-mode').hidden = !modeText;
@@ -151,14 +147,14 @@ export function createHud(root: HTMLElement, aiName: string): Hud {
       if (powerFull && !powerWasFull && performance.now() - powerAlertAt > 30_000) {
         powerAlertAt = performance.now();
         alerts.push({ text: POWER_FULL_ALERT, at: powerAlertAt });
-        ring(POWER_FULL_ALERT);
+        onAlert(POWER_FULL_ALERT);
       }
       powerWasFull = powerFull;
 
       const now = performance.now();
       while (messages.length && now - messages[0]!.at > 4000) messages.shift();
       while (alerts.length && now - alerts[0]!.at > 6000) alerts.shift();
-      setHtml('hud-alerts', alerts.map((m) => `<div>${m.text}</div>`).join(''));
+      setHtml('hud-alerts', alerts.map((m) => (m.where ? `<div class="jump" data-x="${m.where[0]}" data-y="${m.where[1]}" title="Show me">${m.text} <span class="dim">▸ show</span></div>` : `<div>${m.text}</div>`)).join(''));
       setHtml('hud-messages', messages.map((m) => `<div>${m.text}</div>`).join(''));
 
       // Re-render the guide only when progress changes (keeps text selectable and cheap).
@@ -172,8 +168,8 @@ export function createHud(root: HTMLElement, aiName: string): Hud {
       if (world.winner && !summaryShown) {
         $('hud-banner').hidden = false;
         $('hud-banner').innerHTML = world.winner === 'human'
-          ? 'The network holds. <b>Humans win.</b><br><small>Reload to play again.</small>'
-          : 'The Model has taken the network. <b>AI wins.</b><br><small>Reload to play again.</small>';
+          ? '<span style="color:var(--human)">The network holds.</span> <b>Humans win.</b><br><small>Reload to play again.</small>'
+          : '<span style="color:var(--ai)">The Model has taken the network.</span> <b>AI wins.</b><br><small>Reload to play again.</small>';
       }
     },
     showSummary(html, attach) {
@@ -198,8 +194,9 @@ export function createHud(root: HTMLElement, aiName: string): Hud {
       for (const b of buttons) {
         const btn = document.createElement('button');
         btn.type = 'button';
+        btn.dataset.kind = b.id.startsWith('train:') ? 'train' : b.id.startsWith('build:') ? 'build' : b.id === 'plug' ? 'plug' : b.id.startsWith('group:') ? 'group' : 'order';
         btn.innerHTML = `<span class="label">${b.label}</span>`
-          + (b.cost ? `<span class="cost">${Math.trunc(b.cost / MILLI)} Data</span>` : '')
+          + (b.cost ? `<span class="cost">${Math.trunc(b.cost / MILLI)}</span>` : '')
           + (b.key ? `<kbd>${b.key}</kbd>` : '');
         btn.title = b.disabled ? `${b.tip}
 
@@ -220,21 +217,31 @@ export function createHud(root: HTMLElement, aiName: string): Hud {
     showStart(onStart) {
       const el = $('hud-start');
       el.hidden = false;
-      el.innerHTML = `<h1>AI Cyberwar RTS</h1>
-        <p>You are the <b style="color:var(--human)">human ops team</b> (blue, left). The <b style="color:var(--ai)">AI</b> (orange) starts on the right, hidden by fog.</p>
-        <p><b>Goal:</b> destroy the AI's Primary Cluster before it destroys your NOC.</p>
-        <p><b>How:</b> claim Data Sources, connect them to your base with fiber, build a SOC, train an army, attack.
-        The checklist on the left walks you through it. Hover anything on the map to learn what it is.</p>
-        <button type="button" id="start-btn">Start</button>`;
-      startPending = true;
-      el.querySelector('#start-btn')!.addEventListener('click', () => { el.hidden = true; startPending = false; sounds.unlock(); onStart(); });
+      el.innerHTML = word(`<div class="eyebrow">Real-time strategy · Metro region network</div>
+        <h1>AI Cyberwar</h1>
+        <div class="sides">
+          <div class="side you"><h2>You · Human ops team</h2><p>Engineers, security operators and vehicles. Blue, on the left.</p></div>
+          <div class="side them"><h2>Enemy · The Model</h2><p>A rogue AI driving hijacked machines. Orange, on the right, hidden by fog.</p></div>
+        </div>
+        <p class="how"><b>Goal:</b> destroy the AI's Primary Cluster before it destroys your NOC. Claim Data Sources, connect them to your base with fiber, build a SOC, train an army, attack.</p>
+        <button type="button" id="start-btn" class="btn primary">Start</button>
+        <div class="hint">The checklist on the left walks you through it. Hover anything on the map to learn what it is.</div>`);
+      el.querySelector('#start-btn')!.addEventListener('click', () => { el.hidden = true; onStart(); });
     },
-    alert(text) {
-      alerts.push({ text, at: performance.now() });
-      ring(text);
+    alert(text, where) {
+      alerts.push({ text, at: performance.now(), ...(where ? { where } : {}) });
       if (alerts.length > 3) alerts.shift();
+      onAlert(text);
     },
     onNarrowSelection(fn) { onNarrow = fn; },
+    onAlertTap(fn) { onAlertTap = fn; },
+    onAlert(fn) { onAlert = fn; },
+    setSoundToggle(on, toggle) {
+      const btn = $('t-sound');
+      const label = (v: boolean) => { btn.textContent = v ? '🔔 Sounds' : '🔕 Muted'; btn.setAttribute('aria-pressed', String(v)); };
+      label(on);
+      btn.onclick = () => label(toggle());
+    },
     setIntel(html) {
       if (html === intelHtml) return;
       intelHtml = html;
@@ -257,7 +264,7 @@ export function trainingText(t: NonNullable<ReturnType<typeof training>>): strin
 /** "Building: 45% · 8s (2 engineers)", or a warning when no engineer is assigned. */
 export function constructionText(c: NonNullable<ReturnType<typeof construction>>): string {
   const eta = c.seconds === null
-    ? '<b class="warn">paused: no engineers building it</b> <span class="dim">(select engineers, right-click it)</span>'
+    ? `<b class="warn">paused: no engineers building it</b> <span class="dim">(${word('select engineers, right-click it')})</span>`
     : `<b>${c.seconds}s</b> <span class="dim">(${c.builders} engineer${c.builders === 1 ? '' : 's'}; more build faster)</span>`;
   return `Building: <b>${c.percent}%</b> · ${eta}`;
 }

@@ -1,110 +1,89 @@
-// Sound cues for alerts (issue #4): short tones made with the Web Audio API, so there are no asset files.
-// Silent until a user gesture unlocks audio (browser autoplay rules; the HUD unlocks on Start), each cue at
-// most once per cooldown, and a mute choice remembered in localStorage.
-
-/** How each alert line starts (effects.ts and hud.ts build their messages from these); cues match on them. */
-export const ALERT_PREFIX = {
-  attack: '⚠ Your ',
-  spotted: '⚠ AI forces spotted',
-  approaching: '⚠ Enemy forces approaching',
-  power: '⚡ Power full',
-} as const;
-
-export type Cue = 'attack' | 'warning' | 'power';
+// Sound cues for alerts (#4): short tones synthesized with Web Audio, so there are no asset files to
+// license. Silent until the player starts the game (browsers block audio before a user gesture), at
+// most one cue of a kind every few seconds, and a mute toggle remembered in localStorage.
 
 export const SOUND = {
-  /** Master volume (0-1). Kept low: cues sit on top of the music. */
-  volume: 0.22,
+  volume: 0.12,
   /** The same cue never repeats faster than this. */
-  cooldownMs: 4000,
+  gapMs: 5000,
 };
 
-/** Which cue an alert line gets, or null for lines that stay silent. */
+export type Cue = 'attacked' | 'approaching' | 'spotted' | 'power';
+
+/** Which cue an alert line gets; null for messages that aren't alerts. */
 export function cueFor(text: string): Cue | null {
-  if (text.startsWith(ALERT_PREFIX.attack)) return 'attack';
-  if (text.startsWith(ALERT_PREFIX.spotted) || text.startsWith(ALERT_PREFIX.approaching)) return 'warning';
-  if (text.startsWith(ALERT_PREFIX.power)) return 'power';
+  if (/under attack/i.test(text)) return 'attacked';
+  if (/approaching/i.test(text)) return 'approaching';
+  if (/spotted/i.test(text)) return 'spotted';
+  if (/power full/i.test(text)) return 'power';
   return null;
 }
 
-/** True (and remembered) if `cue` has not played within the cooldown. */
-export function shouldPlay(last: Map<Cue, number>, cue: Cue, now: number, cooldownMs = SOUND.cooldownMs): boolean {
-  if (now - (last.get(cue) ?? -Infinity) < cooldownMs) return false;
-  last.set(cue, now);
-  return true;
+/** Returns a check that says whether a cue may play now, and records it when it may. */
+export function createCueLimiter(gapMs = SOUND.gapMs): (cue: Cue, now: number) => boolean {
+  const last = new Map<Cue, number>();
+  return (cue, now) => {
+    if (now - (last.get(cue) ?? -Infinity) < gapMs) return false;
+    last.set(cue, now);
+    return true;
+  };
 }
 
-/** Tones per cue: [frequency Hz, start s, length s, waveform]. */
-const TONES: Record<Cue, [number, number, number, OscillatorType][]> = {
-  // Two quick falling beeps: something of yours is being hit.
-  attack: [[880, 0, 0.09, 'square'], [660, 0.12, 0.12, 'square']],
-  // One soft blip: enemies seen on your half.
-  warning: [[740, 0, 0.14, 'sine']],
-  // A low falling tone: Power is full.
-  power: [[220, 0, 0.12, 'triangle'], [165, 0.12, 0.22, 'triangle']],
+/** Each cue's notes: [frequency Hz, start s, length s]. Falling = danger, rising = incoming. */
+const NOTES: Record<Cue, { wave: OscillatorType; notes: [number, number, number][] }> = {
+  attacked: { wave: 'square', notes: [[880, 0, 0.09], [660, 0.12, 0.12]] },
+  approaching: { wave: 'triangle', notes: [[523, 0, 0.1], [784, 0.12, 0.14]] },
+  spotted: { wave: 'triangle', notes: [[659, 0, 0.12]] },
+  power: { wave: 'sine', notes: [[220, 0, 0.18], [196, 0.2, 0.22]] },
 };
 
-interface Storage { getItem(key: string): string | null; setItem(key: string, value: string): void }
-
-export interface SoundOptions {
-  storage?: Storage;
-  /** Injected in tests; null means no audio device. */
-  createContext?: () => AudioContext | null;
-  now?: () => number;
-}
-
 export interface SoundPlayer {
+  /** Call when the player starts the game (a user gesture). Safe to call again. */
+  start(): void;
+  /** Plays a cue unless muted, not started yet, or played too recently. Returns whether it played. */
+  play(cue: Cue, now: number): boolean;
   readonly muted: boolean;
-  /** Call from a user gesture (the Start click). Before this, nothing plays. Safe to call again. */
-  unlock(): void;
-  /** Plays a cue unless locked, muted or cooling down. Returns whether it played. */
-  play(cue: Cue): boolean;
-  /** Returns whether sound is now on. */
+  /** Returns whether sounds are now on. */
   toggleMute(): boolean;
 }
 
-export function createSounds(opts: SoundOptions = {}): SoundPlayer {
-  const storage = opts.storage ?? (typeof localStorage === 'undefined' ? undefined : localStorage);
-  const createContext = opts.createContext ?? (() => (typeof AudioContext === 'undefined' ? null : new AudioContext()));
-  const now = opts.now ?? (() => performance.now());
+export function createSound(): SoundPlayer {
   let muted = false;
-  try { muted = storage?.getItem('sound') === 'off'; } catch { /* storage blocked: default on */ }
-  let unlocked = false;
+  try { muted = localStorage.getItem('sounds') === 'off'; } catch { /* storage blocked: default on */ }
   let ctx: AudioContext | null = null;
-  const last = new Map<Cue, number>();
-
-  function tone(freq: number, start: number, length: number, type: OscillatorType): void {
-    if (!ctx) return;
-    const t0 = ctx.currentTime + start;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
-    // Short fade in and out, so the tones don't click.
-    gain.gain.setValueAtTime(0, t0);
-    gain.gain.linearRampToValueAtTime(SOUND.volume, t0 + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + length);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(t0);
-    osc.stop(t0 + length + 0.02);
-  }
-
+  let master: GainNode | null = null;
+  const allowed = createCueLimiter();
   return {
-    get muted() { return muted; },
-    unlock() {
-      if (unlocked) return;
-      unlocked = true;
-      try { ctx = createContext(); } catch { ctx = null; }
-      void ctx?.resume();
+    start() {
+      if (ctx) return;
+      ctx = new AudioContext();
+      master = ctx.createGain();
+      master.gain.value = SOUND.volume;
+      master.connect(ctx.destination);
     },
-    play(cue) {
-      if (!unlocked || muted || !shouldPlay(last, cue, now())) return false;
-      for (const [f, s, l, type] of TONES[cue]) tone(f, s, l, type);
+    play(cue, now) {
+      if (!ctx || !master || muted || !allowed(cue, now)) return false;
+      const { wave, notes } = NOTES[cue];
+      for (const [freq, at, len] of notes) {
+        const t = ctx.currentTime + at;
+        const osc = ctx.createOscillator();
+        const env = ctx.createGain();
+        osc.type = wave;
+        osc.frequency.value = freq;
+        // Quick attack and decay: a blip, not a click.
+        env.gain.setValueAtTime(0, t);
+        env.gain.linearRampToValueAtTime(1, t + 0.01);
+        env.gain.exponentialRampToValueAtTime(0.001, t + len);
+        osc.connect(env).connect(master);
+        osc.start(t);
+        osc.stop(t + len + 0.02);
+      }
       return true;
     },
+    get muted() { return muted; },
     toggleMute() {
       muted = !muted;
-      try { storage?.setItem('sound', muted ? 'off' : 'on'); } catch { /* not remembered */ }
+      try { localStorage.setItem('sounds', muted ? 'off' : 'on'); } catch { /* not saved */ }
       return !muted;
     },
   };

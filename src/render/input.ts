@@ -18,7 +18,8 @@ export interface UiState {
   mode: Mode;
 }
 
-const SOC_UNITS: Record<string, UnitTypeId> = { '1': 'counter_drone_team', '2': 'red_team', '3': 'armored_vehicle' };
+// U / I / O sit together like 1 / 2 / 3 used to; the number keys are control groups now (#3).
+const SOC_UNITS: Record<string, UnitTypeId> = { u: 'counter_drone_team', i: 'red_team', o: 'armored_vehicle' };
 const BUILD_KEYS: Record<string, BuildingTypeId> = { q: 'soc', r: 'server_rack', f: 'barricade', v: 'security_post' };
 
 export const HOTKEYS: [string, string][] = [
@@ -27,7 +28,9 @@ export const HOTKEYS: [string, string][] = [
   ['Right click', 'move / attack / claim site / light link'],
   ['A then click', 'attack-move'],
   ['E', 'train Field Engineer (NOC)'],
-  ['1 / 2 / 3', 'train Counter-Drone / Red Team / Armored Vehicle (SOC)'],
+  ['U / I / O', 'train Counter-Drone / Red Team / Armored Vehicle (SOC)'],
+  ['Ctrl+1–9', 'save the selection as a control group'],
+  ['1–9', 'select that control group (press twice to jump the camera to it)'],
   ['Q / R / F / V then click', 'build SOC / Server Rack / Barricade / Security Post (workers)'],
   ['P then click', 'Pull the Plug'],
   ['G / D', 'army attack / defend the sector under the cursor'],
@@ -37,14 +40,15 @@ export const HOTKEYS: [string, string][] = [
   ['Ctrl+A', 'select all combat units'],
   ['T', 'toggle the text view (what an LLM General would read)'],
   ['M', 'music on / off'],
+  ['N', 'alert sounds on / off (also the 🔔 button, top bar)'],
   ['Space', 'pause   + / -  game speed'],
   ['Arrows, wheel, middle-drag', 'pan and zoom'],
 ];
 
-/** Selection by click: the own unit or building under the cursor. */
-export function pickOwn(view: FactionView, x: number, y: number): number | null {
+/** Selection by click: the own unit or building under the cursor (`radius`: wider for fingers on touch screens). */
+export function pickOwn(view: FactionView, x: number, y: number, radius = 700): number | null {
   let best: number | null = null;
-  let bestD = (700) ** 2;
+  let bestD = radius ** 2;
   for (const u of view.units) {
     const d = dist2(u.x, u.y, x, y);
     if (d < bestD) { bestD = d; best = u.id; }

@@ -2,6 +2,13 @@
 
 The story of building this game, newest first. Wins, failures, surprises, and what the agents did well or badly. Anyone can add an entry.
 
+## 2026-10-25 — Faction balance, measured again (#32)
+
+- Issue #32 said the AI collapses under pressure (control beats AI boom 76%) and owns the control mirror (B 73%). On main today, over 80 seeds, those are 42% and 61%: the bot fixes since then did a lot. What's left on the faction side: the AI wins the boom and turtle mirrors (36% and 39% human wins) and has its first army out 29 s earlier.
+- Fourteen stat variants, run in memory against the same bots and seeds as `npm run balance`. Buffing the AI (hp, cost) made things worse. Training humans 10-20% faster overshot so far that humans won the control mirror 72-80%. Just 5% faster put the boom and turtle mirrors back inside 40-60%, with B at 58%.
+- Human rush vs AI turtle stayed at 2-21% in every sane variant, and the turtle bot folds to pressure as either faction. Those look like bot habits, not faction stats. Proposal 0003 has the tables; nothing changes until the owner plays it.
+- Lesson: re-measure before fixing an issue that's a few days old. Half of #32's numbers had already moved.
+
 ## 2026-10-25 — A cloud General, bring your own key
 
 - Owner decision (D-020): players without a GPU can play the LLM General through an OpenAI-compatible API, using their own key. The client is about 50 lines. The interesting part is everything around the key: kept for the session unless you ask to remember it, sent only in a header, never in a URL, log or error message, and errors are scrubbed in case a provider echoes the key back.

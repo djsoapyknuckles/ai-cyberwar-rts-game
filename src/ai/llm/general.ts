@@ -8,6 +8,7 @@
 import { createRng, digestView, TICK_RATE, type Command, type Digest, type Faction, type FactionView } from '../../sim/index.ts';
 import type { Controller } from '../controller.ts';
 import { createScriptedBot, type Strategy } from '../scripted.ts';
+import { createEnemyMemory, lastSeen, observe, type LastSeen } from './memory.ts';
 import { filterChat } from './filter.ts';
 import { planTurn, type Directive } from './plan.ts';
 import { parseTurn, type ToolCall } from './tools.ts';
@@ -18,10 +19,13 @@ import { parseTurn, type ToolCall } from './tools.ts';
  */
 export type Brain = (turn: {
   tick: number;
-  digest: Digest;
+  digest: TurnDigest;
   /** The General's own last chat lines (after filterChat, oldest first), so it can avoid repeating itself. Never player text. */
   youSaid?: readonly string[];
 }) => unknown;
+
+/** What the brain reads each turn: the digest, plus enemy armies the General saw earlier but can't see now (#30). */
+export type TurnDigest = Digest & { lastSeen?: LastSeen[] };
 
 export interface TurnLog {
   /** Tick the turn was requested (the digest's tick). */
@@ -119,13 +123,15 @@ export function createGeneral(faction: Faction, brain: Brain, base: Strategy, op
   let pending: Pending | null = null;
   /** LLM commands waiting to go out, one per decision so the APM cap never drops them. */
   let outbox: Command[] = [];
+  const memory = createEnemyMemory();
   /** The General's last TAUNT_MEMORY chat lines as players saw them (filtered); only its own output. */
   let said: string[] = [];
 
   function request(view: FactionView): Pending {
     const p: Pending = { tick: view.tick, readyAt: null, arrived: false, reply: null, crashed: null, inflight: null };
     try {
-      const reply = brain({ tick: view.tick, digest: digestView(view), youSaid: [...said] });
+      const seen = lastSeen(memory, view);
+      const reply = brain({ tick: view.tick, digest: seen.length > 0 ? { ...digestView(view), lastSeen: seen } : digestView(view), youSaid: [...said] });
       if (reply instanceof Promise) {
         const start = performance.now();
         p.inflight = reply.then((r) => { p.reply = r; }, (e) => { p.crashed = String(e); }).finally(() => {
@@ -183,6 +189,7 @@ export function createGeneral(faction: Faction, brain: Brain, base: Strategy, op
     log,
     settle: async () => { await pending?.inflight; },
     decide(view: FactionView): Command[] {
+      observe(memory, view);
       if (!pending && view.tick >= nextTurn) {
         nextTurn = view.tick + interval;
         pending = request(view);

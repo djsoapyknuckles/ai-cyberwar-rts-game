@@ -1,55 +1,43 @@
 import { describe, expect, it } from 'vitest';
-import { browserCandidates, findBrowser, isThrown, parseShotArgs, problemFrom } from '../scripts/browser.ts';
+import { browserCandidates, pageError } from '../scripts/cdp.ts';
 
-// Issue #34: `npm run shot` screenshots the game headlessly. The browser-driving part needs a real browser;
-// these are the pure pieces around it.
-describe('npm run shot helpers', () => {
-  it('BROWSER_PATH wins over every known install location', () => {
-    expect(browserCandidates('win32', { BROWSER_PATH: 'D:/chrome.exe' })[0]).toBe('D:/chrome.exe');
-    expect(findBrowser('linux', { BROWSER_PATH: '/opt/x/chrome' }, () => false)).toBe('/opt/x/chrome');
+// `npm run shot` (#34): the pure parts of the headless screenshot tool. Launching a real browser is
+// checked by hand (see the PR), since CI has none.
+describe('shot: browser search', () => {
+  it('BROWSER_PATH overrides the search', () => {
+    expect(browserCandidates('win32', { BROWSER_PATH: 'C:\\b\\chrome.exe', PROGRAMFILES: 'C:\\Program Files' })).toEqual(['C:\\b\\chrome.exe']);
   });
 
-  it('looks for Chrome, Edge and Chromium in the usual places for each OS', () => {
-    const win = browserCandidates('win32', { LOCALAPPDATA: 'C:\\Users\\a\\AppData\\Local', PROGRAMFILES: 'C:\\Program Files', 'PROGRAMFILES(X86)': 'C:\\Program Files (x86)' });
-    expect(win).toContain('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe');
-    expect(win).toContain('C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe');
-    expect(win).toContain('C:\\Users\\a\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe');
-    const linux = browserCandidates('linux', {});
-    expect(linux).toEqual(expect.arrayContaining(['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/microsoft-edge', '/snap/bin/chromium']));
-    expect(browserCandidates('darwin', {})).toContain('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
+  it('tries Chrome, then Edge, then Chromium under the Windows program folders', () => {
+    const c = browserCandidates('win32', { PROGRAMFILES: 'C:\\PF', 'PROGRAMFILES(X86)': 'C:\\PF86' });
+    expect(c[0]).toMatch(/PF.*Chrome.*chrome\.exe$/);
+    expect(c.findIndex((p) => p.includes('msedge'))).toBeGreaterThan(c.findIndex((p) => p.includes('Google')));
+    expect(c.some((p) => p.includes('PF86') && p.endsWith('msedge.exe'))).toBe(true);
   });
 
-  it('picks the first candidate that exists, or null', () => {
-    const env = { PROGRAMFILES: 'C:\\Program Files', 'PROGRAMFILES(X86)': 'C:\\Program Files (x86)' };
-    const edge = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
-    expect(findBrowser('win32', env, (p) => p === edge)).toBe(edge);
-    expect(findBrowser('win32', env, () => false)).toBeNull();
+  it('looks in the usual Linux and macOS places', () => {
+    expect(browserCandidates('linux', {})).toContain('/usr/bin/chromium');
+    expect(browserCandidates('darwin', {})[0]).toBe('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
   });
+});
 
-  it('reads url, output file, wait and size; rejects a missing url or output', () => {
-    expect(parseShotArgs(['http://localhost:5173/?autostart', 'shot.png', '--wait', '20'])).toEqual({
-      url: 'http://localhost:5173/?autostart', out: 'shot.png', wait: 20, width: 1600, height: 900,
-    });
-    expect(parseShotArgs(['http://x', 'a.png', '--width', '1280', '--height', '720'])).toMatchObject({ wait: 10, width: 1280, height: 720 });
-    expect(() => parseShotArgs(['http://x'])).toThrow(/usage/);
-    expect(() => parseShotArgs(['http://x', 'a.png', '--wait', 'soon'])).toThrow(/--wait/);
-  });
-
-  it('turns thrown exceptions, console.error and error log entries into problems; ignores the rest', () => {
-    expect(problemFrom('Runtime.exceptionThrown', { exceptionDetails: { text: 'Uncaught', exception: { description: 'TypeError: x is undefined' } } }))
+describe('shot: page errors', () => {
+  it('reports exceptions, console.error and error log entries', () => {
+    expect(pageError('Runtime.exceptionThrown', { exceptionDetails: { text: 'Uncaught', exception: { description: 'TypeError: x is undefined' } } }))
       .toBe('exception: TypeError: x is undefined');
-    expect(problemFrom('Runtime.consoleAPICalled', { type: 'error', args: [{ value: 'boom' }, { description: 'Error: bad' }] }))
-      .toBe('console.error: boom Error: bad');
-    expect(problemFrom('Runtime.consoleAPICalled', { type: 'log', args: [{ value: 'hi' }] })).toBeNull();
-    expect(problemFrom('Log.entryAdded', { entry: { level: 'error', text: 'Failed to load resource', url: 'http://x/a.js' } }))
-      .toBe('log: Failed to load resource (http://x/a.js)');
-    expect(problemFrom('Log.entryAdded', { entry: { level: 'warning', text: 'meh' } })).toBeNull();
+    expect(pageError('Runtime.consoleAPICalled', { type: 'error', args: [{ type: 'string', value: 'boom' }, { type: 'number', value: 3 }] }))
+      .toBe('console.error: boom 3');
+    expect(pageError('Log.entryAdded', { entry: { level: 'error', text: 'Failed to load resource', url: 'http://x/a.png' } }))
+      .toBe('log: Failed to load resource (http://x/a.png)');
   });
 
-  it('ignores the missing favicon, and only thrown exceptions fail the run', () => {
-    expect(problemFrom('Log.entryAdded', { entry: { level: 'error', text: '404 (Not Found)', url: 'http://localhost:5173/favicon.ico' } })).toBeNull();
-    expect(isThrown('exception: TypeError: x')).toBe(true);
-    expect(isThrown('console.error: boom')).toBe(false);
-    expect(isThrown('log: Failed to load resource (http://x/a.js)')).toBe(false);
+  it('ignores logs, warnings and other events', () => {
+    expect(pageError('Runtime.consoleAPICalled', { type: 'log', args: [] })).toBeNull();
+    expect(pageError('Log.entryAdded', { entry: { level: 'warning', text: 'meh' } })).toBeNull();
+    expect(pageError('Page.loadEventFired', {})).toBeNull();
+  });
+
+  it("ignores the browser's own favicon request (the game has none)", () => {
+    expect(pageError('Log.entryAdded', { entry: { level: 'error', text: 'Failed to load resource: 404', url: 'http://localhost:5173/favicon.ico' } })).toBeNull();
   });
 });

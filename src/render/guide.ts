@@ -1,5 +1,6 @@
 // Getting-started checklist. Each step checks itself off from the player's view of the game.
 import type { FactionView } from '../sim/index.ts';
+import { word } from './wording.ts';
 
 export interface GuideStep {
   title: string;
@@ -44,8 +45,10 @@ export const GUIDE: GuideStep[] = [
 
 export function renderGuide(el: HTMLElement, v: FactionView): void {
   const current = GUIDE.findIndex((s) => !s.done(v));
-  el.innerHTML = `<div class="guide-title">Getting started</div><ol>${GUIDE.map((s, i) => {
+  const done = GUIDE.filter((s) => s.done(v)).length;
+  el.innerHTML = `<div class="guide-title">Getting started<span class="guide-count">${done}/${GUIDE.length}</span></div>`
+    + `<div class="guide-bar"><span style="width:${Math.round((done / GUIDE.length) * 100)}%"></span></div><ol>${GUIDE.map((s, i) => {
     const state = s.done(v) ? 'done' : i === current ? 'current' : 'todo';
-    return `<li class="${state}">${state === 'done' ? '✓ ' : ''}${s.title}${state === 'current' ? `<div class="how">${s.how}</div>` : ''}</li>`;
+    return `<li class="${state}">${s.title}${state === 'current' ? `<div class="how">${word(s.how)}</div>` : ''}</li>`;
   }).join('')}</ol>`;
 }
