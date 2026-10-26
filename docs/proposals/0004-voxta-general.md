@@ -1,6 +1,30 @@
 # Proposal 0004: A Voxta character as the General
 
-Status: **draft for owner review.** Nothing here is built. Step 1 (Voxta as a plain LLM provider, D-022) is separate and already works.
+Status: **approved (D-023), being built.** First version: spoken taunts only (no player voice), a shipped "The Model" character, fun mode outside the Gate 2 benchmark, before Phase 3. Step 1 (Voxta as a plain LLM provider, D-022) is separate and already works.
+
+## Spike result (2026-10-26)
+
+A throwaway headless client connected to a local Voxta, started a chat with a character, declared two game tools, sent one game turn and logged everything back:
+
+| Time | Event |
+|---|---|
+| 0.3 s | chat started; the character's greeting arrived and needed a "speech playback complete" before the chat moved on |
+| 0.3 s | game turn sent (the state digest) |
+| 0.3–13.5 s | the model reasoned (this chat had reasoning on) |
+| 15.1 s | two client tool calls: `attack_sector {"sector":"C"}`, `set_army_mix {"tank":2,"fast":1,"ranged":3}` — valid and sensible |
+| 16.9 s | spoken line: "Contesting center sector now—reinforcements en route." (silent: that character had no voice set up) |
+
+Must-haves for the real client:
+- Report speech playback complete after **every** reply, greeting included, or the chat stalls.
+- Count tool calls from the tool-call *request* only: each call is also announced twice as a reply event (called, then completed).
+- Reasoning off in the shipped character's chat preset: 15 s is over the 10 s turn timeout.
+- A character with a voice configured, or the "speech" is silence.
+
+## Shipping "The Model"
+
+Two ways; start with the first:
+1. **A Voxta package in this repo** that players import once in Voxta. Authored in Voxta (persona, voice, chat preset with reasoning off) and exported; licensed with the game's original assets (CC-BY-4.0).
+2. **The game creates the character through Voxta's API** if it's missing. Smoother, but needs a key allowed to write resources, which is more than a game should ask for. Later, if the import step proves a hurdle.
 
 ## The idea
 
@@ -44,15 +68,19 @@ This builds on issue #31 (player-to-General chat) and needs the same decision.
 | Microphone (optional, later) | Player voice goes through Voxta's own speech input; a push-to-talk key in the game. |
 | Setup on the Voxta side | An API key, and the game's address in Voxta's allowed origins (as for D-022). A ready-made "The Model" character could ship as a Voxta package later, for players who don't want to build one. |
 
-## Open questions for the owner
+## Owner decisions (D-023)
 
-1. **Scope of the first version:** voice taunts only (General talks, player listens), or two-way voice from the start?
-2. **Character freedom:** may any Voxta character be the General, or should the game ship one character that fits the world (`docs/NARRATIVE.md`)? Players' own characters break the "The Model" fiction but are the most fun.
-3. **Benchmark:** a Voxta character's turns are slower (speech) and its personality may play worse. Does it need to pass the Gate 2 bar, or is it a "fun mode" outside the benchmark?
-4. **Where it goes on the roadmap:** before Phase 3, or as a Phase 4 feature next to onboarding and the difficulty ladder?
+1. **First version:** voice taunts only. The General talks, the player listens.
+2. **Character:** the game ships "The Model"; players don't pick their own characters.
+3. **Benchmark:** fun mode, outside the Gate 2 bar.
+4. **Roadmap:** before Phase 3.
 
-## Steps if approved
+## Build plan
 
-1. **Spike:** a headless script that connects to a local Voxta, starts a chat with a character, declares one tool (`wait`) and logs a full turn: text, tool call, audio URL. Measures turn latency with speech.
-2. **D-023 decision entry:** the player-voice rule above, owner-approved.
-3. **Build in small PRs:** the client module with tests (faked socket); the General's Voxta brain behind the existing `Brain` interface; the setup screen option and character picker; audio playback; voice input last.
+1. ✅ **Spike** (above).
+2. ✅ **D-023 decision entry.**
+3. **Voxta chat client** (`src/ai/llm/voxta-chat.ts`): connect, authenticate, start a chat with a character, send a turn, declare tools, answer tool calls, report speech playback; tests with a faked socket.
+4. **Voxta character brain** behind the existing `Brain` interface: one chat per match; each turn sends the digest, collects the tool calls into an ordinary turn for the validator and planner, and returns the spoken line for the chat panel.
+5. **"The Model" package** for Voxta, plus a short import guide.
+6. **Setup screen option and speech playback:** "AI General (Voxta voice)", play the character's audio and report playback complete; respect the game's mute.
+7. Later, separate decision: two-way voice, under the player-voice rule above.

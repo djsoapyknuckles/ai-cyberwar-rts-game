@@ -2,6 +2,15 @@
 
 Newest first. Each entry: date, decision, options considered, reason. Changes to design pillars need owner approval.
 
+## D-023 — 2026-10-27 — Voxta character General: spoken taunts, shipped "The Model", fun mode, before Phase 3
+- **Decision** (owner's answers to proposal 0004):
+  1. **Voice taunts only, first.** The General speaks; the player listens. No player voice input yet, so the rule "player speech never gives orders" has nothing to guard in this version, and stays required for any later two-way version.
+  2. **The game ships a "The Model" character**, in keeping with `docs/NARRATIVE.md`, rather than letting any Voxta character play the General.
+  3. **Fun mode for now.** Outside the Gate 2 benchmark; still the same validator, planner, APM cap, reaction delay and scripted fallback as every General.
+  4. **Built before Phase 3.**
+- **Spike result (2026-10-26):** a headless client (SignalR JSON over a plain WebSocket, no dependency) started a chat with a Voxta character, declared game tools, sent one game turn and got back two valid tool calls (`attack_sector C`, `set_army_mix`) plus a spoken line. Must-haves found: report speech playback complete after every reply (including the character's greeting), or the chat stalls; count tool calls from `toolCallRequest` only (each call is also announced twice as `replyToolCall`). The test chat ran with reasoning on and took 15 s to the orders, over the 10 s turn timeout; the shipped character's preset needs reasoning off.
+- **Approved:** owner, 2026-10-27.
+
 ## D-022 — 2026-10-26 — Voxta as an LLM provider for the General
 - **Decision:** players can run the General on their own Voxta server. Voxta serves an OpenAI-compatible `/v1/chat/completions` that answers with whatever text model the player set up in Voxta (local or cloud), so the existing OpenAI-compatible client is reused (`src/ai/llm/voxta.ts`).
   - **Browser:** "AI General (Voxta)" on the setup screen, offered only when a Voxta answers on this machine. Address is always `localhost` (port from `&voxtaPort=`, default 5384), so a link can never send a Voxta key elsewhere. A key (Voxta API key with the `inference` scope) is asked for only when Voxta requires one, and kept in its own slot (session by default, "remember" for this device).
