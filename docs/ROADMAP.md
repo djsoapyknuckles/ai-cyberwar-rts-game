@@ -158,7 +158,7 @@ Timeboxes assume ~8 hrs/week. Overrunning a timebox by 50% triggers an owner rev
   - Win criterion (D-018, amended by D-019): head-to-head against the attack-every-turn control, ≥30 seeds. The best local model (AI side) wins ≥15 points more than the control does against itself (baseline B) on the same seeds. First result: qwen3:8b 90% vs B 73% over 60 seeds (+17), but both sides then fed units in one at a time. With massed waves (owner replay seed 88632): qwen3:8b 33% vs B 58% (−25). An ablation traced that to the build-plan tool wording (the model copied its starting 3–4 workers and built no racks); with healthy targets: **qwen3:8b 95% vs B 58% over 60 seeds (+37), met**. The best fixed policy found (control + a 6/2/2 build plan) reaches 82%.
   - Warnings, not gate criteria (D-019): scripted bots hold the control to ≤60% per strategy and side; scripted mirrors are 40–60%.
   - Invalid-command rate <2%; p95 decision latency <3 s.
-  - Owner blind test: LLM General feels noticeably different from scripted AI.
+  - ✅ Owner blind test: LLM General feels noticeably different from scripted AI. Passed 2026-10-26: 4 of 4 guessed right (2 LLM, 2 scripted Boom; seeds 13054, 56816, 33375, 18486). Owner's reasons: the scripted bot never adapted (it barely countered a Red Team-heavy army); the LLM's opening was different (an unusual early unit mix, workers doing different jobs).
   - **Owner decision:** default model tier and whether cloud mode is in scope.
 
 ### Phase 3 — Depth & Identity (6–10 weeks)
