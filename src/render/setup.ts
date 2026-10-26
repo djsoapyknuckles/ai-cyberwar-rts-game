@@ -8,6 +8,8 @@ export interface SetupChoice {
   map: string;
   renderer: string;
   quick: boolean;
+  /** Ollama model for the local General ('llm-local'). */
+  model: string;
 }
 
 const OPPONENT_TEXT: Record<string, [string, string]> = {
@@ -16,14 +18,23 @@ const OPPONENT_TEXT: Record<string, [string, string]> = {
   boom: ['Boom', 'Builds a big economy, then a big army.'],
   turtle: ['Turtle', 'Walls and defenses first, a slow and heavy push.'],
   brutal: ['Brutal', 'A fast army with full micro from minute one. For veterans.'],
-  llm: ['AI General', 'A language model commands the AI, through your own OpenAI API key.'],
+  llm: ['AI General (cloud)', 'A language model commands the AI, through your own OpenAI API key. Always at full strength.'],
+  'llm-local': ['AI General (local)', 'A language model on this computer (Ollama) commands the AI. Free and private. Always at full strength.'],
+  blind: ['Blind test', 'The local AI General or the scripted Boom bot, at random, both at full strength. You learn which after the match.'],
 };
+/** Opponents that ignore difficulty: the General is benchmarked at full strength, and a blind test must be fair. */
+export const FULL_STRENGTH = new Set(['llm', 'llm-local', 'blind']);
 
 const VIEWS: [string, string][] = [['pixi', 'Top-down'], ['iso', 'Isometric'], ['three', '3D']];
 
-export function promptSetup(current: SetupChoice, maps: { id: string; name: string }[], opponents: string[], touch: boolean): Promise<SetupChoice> {
+/** `localModels`: models a local Ollama reported, or null when none answered (the local options are then left out). */
+export function promptSetup(current: SetupChoice, maps: { id: string; name: string }[], opponents: string[], touch: boolean,
+  localModels: string[] | null = null): Promise<SetupChoice> {
   return new Promise((resolve) => {
     const choice = { ...current };
+    // A remembered local option without Ollama running now falls back to the default opponent.
+    if (!opponents.includes(choice.ai)) choice.ai = 'training';
+    if (localModels && !localModels.includes(choice.model)) choice.model = localModels.includes('qwen3:8b') ? 'qwen3:8b' : localModels[0]!;
     const el = document.createElement('div');
     el.id = 'game-setup';
     const chips = (group: keyof SetupChoice, items: [string, string][]) =>
@@ -38,7 +49,8 @@ export function promptSetup(current: SetupChoice, maps: { id: string; name: stri
       </div>
       <div class="setup-grid">
         <div class="setup-row"><span class="setup-label">Opponent</span>${chips('ai', opponents.filter((o) => OPPONENT_TEXT[o]).map((o) => [o, OPPONENT_TEXT[o]![0]]))}<p class="setup-note" data-note="ai"></p></div>
-        <div class="setup-row"><span class="setup-label">Difficulty</span>${chips('difficulty', DIFFICULTIES.map((d) => [d, DIFFICULTY[d].label]))}<p class="setup-note" data-note="difficulty"></p></div>
+        ${localModels ? `<div class="setup-row" data-row="model"><span class="setup-label">Model</span>${chips('model', localModels.map((m) => [m, m]))}</div>` : ''}
+        <div class="setup-row" data-row="difficulty"><span class="setup-label">Difficulty</span>${chips('difficulty', DIFFICULTIES.map((d) => [d, DIFFICULTY[d].label]))}<p class="setup-note" data-note="difficulty"></p></div>
         <div class="setup-row"><span class="setup-label">Map</span>${chips('map', maps.map((m) => [m.id, m.name]))}</div>
         <div class="setup-row"><span class="setup-label">View</span>${chips('renderer', VIEWS)}</div>
         <div class="setup-row"><span class="setup-label">Match</span>${chips('quick', [['std', 'Standard'], ['quick', 'Quick']])}</div>
@@ -56,6 +68,9 @@ export function promptSetup(current: SetupChoice, maps: { id: string; name: stri
       }
       el.querySelector<HTMLElement>('[data-note="ai"]')!.textContent = OPPONENT_TEXT[choice.ai]?.[1] ?? '';
       el.querySelector<HTMLElement>('[data-note="difficulty"]')!.textContent = DIFFICULTY[choice.difficulty].blurb;
+      el.querySelector<HTMLElement>('[data-row="difficulty"]')!.hidden = FULL_STRENGTH.has(choice.ai);
+      const modelRow = el.querySelector<HTMLElement>('[data-row="model"]');
+      if (modelRow) modelRow.hidden = choice.ai !== 'llm-local';
     };
     el.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');

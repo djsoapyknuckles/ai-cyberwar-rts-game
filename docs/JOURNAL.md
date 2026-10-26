@@ -2,6 +2,12 @@
 
 The story of building this game, newest first. Wins, failures, surprises, and what the agents did well or badly. Anyone can add an entry.
 
+## 2026-10-26 — The local General joins the menu
+
+- The new setup screen (#51) offered the cloud General but not the local one, and no blind test, and it ran the General at the chosen difficulty (Normal by default: half the actions, a 1 s handicap, no counter-building). Now the screen asks the local Ollama which models it has. If one answers, it offers "AI General (local)" with a model choice and "Blind test". Players without Ollama, and every phone, never see an option that can't work. The General and the blind test always play at full strength, as benchmarked.
+- The blind test stays local-only on purpose: a cloud blind test would ask for your key only when the coin picked the LLM, which gives the answer away.
+- Ollama's default context is 32k tokens; a turn needs about 1,500. Capping it at 4,096 took qwen3:8b from 10.0 GB to 5.6 GB of GPU memory, so 8 GB cards can run the General.
+
 ## 2026-10-25 — Faction balance, measured again (#32)
 
 - Issue #32 said the AI collapses under pressure (control beats AI boom 76%) and owns the control mirror (B 73%). On main today, over 80 seeds, those are 42% and 61%: the bot fixes since then did a lot. What's left on the faction side: the AI wins the boom and turtle mirrors (36% and 39% human wins) and has its first army out 29 s earlier.

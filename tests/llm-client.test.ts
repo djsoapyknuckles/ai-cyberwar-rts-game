@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createLlmBrain, createOllamaClient } from '../src/ai/llm/client.ts';
+import { createLlmBrain, createOllamaClient, listOllamaModels } from '../src/ai/llm/client.ts';
 import { systemPrompt, userPrompt } from '../src/ai/llm/prompt.ts';
 import { toolSpecs, turnSchema } from '../src/ai/llm/tools.ts';
 import { digestView, factionView } from '../src/sim/index.ts';
@@ -11,7 +11,7 @@ type Call = { url: string; body: Record<string, unknown> };
 function fakeFetch(respond: (call: Call) => Response): { fetch: typeof fetch; calls: Call[] } {
   const calls: Call[] = [];
   const f = (async (url: string, init: RequestInit) => {
-    const call = { url, body: JSON.parse(init.body as string) as Record<string, unknown> };
+    const call = { url, body: (init.body ? JSON.parse(init.body as string) : {}) as Record<string, unknown> };
     calls.push(call);
     return respond(call);
   }) as unknown as typeof fetch;
@@ -73,6 +73,31 @@ describe('Ollama client', () => {
     expect(calls[0]!.body).not.toHaveProperty('think');
     expect(calls[0]!.body.keep_alive).toBe('30m');
     expect(calls[0]!.url).toBe('http://localhost:11434/api/chat');
+  });
+
+  // Measured 2026-10-26 on an RTX 3090: qwen3:8b at Ollama's default 32k context took 10.0 GB, at 4096 5.6 GB.
+  it('caps the context at 4096 tokens unless told otherwise', async () => {
+    const { fetch, calls } = fakeFetch(() => ok('{}'));
+    await createOllamaClient({ model: 'm', fetch }).complete({ system: 's', user: 'u', schema: {} });
+    await createOllamaClient({ model: 'm', fetch, numCtx: 8192 }).complete({ system: 's', user: 'u', schema: {} });
+    expect((calls[0]!.body.options as { num_ctx: number }).num_ctx).toBe(4096);
+    expect((calls[1]!.body.options as { num_ctx: number }).num_ctx).toBe(8192);
+  });
+});
+
+describe('local Ollama detection (setup screen)', () => {
+  const tags = (models: unknown[]) => new Response(JSON.stringify({ models }), { status: 200 });
+  it('lists installed models, sorted, and drops names that are not plain model ids', async () => {
+    const { fetch, calls } = fakeFetch(() => tags([{ name: 'qwen3:8b' }, { name: 'gemma3:4b' }, { name: '<img src=x>' }, { size: 1 }]));
+    expect(await listOllamaModels({ fetch })).toEqual(['gemma3:4b', 'qwen3:8b']);
+    expect(calls[0]!.url).toBe('http://localhost:11434/api/tags');
+  });
+
+  it('is null when nothing answers, it errors, or no model is installed', async () => {
+    const down = (async () => { throw new TypeError('Failed to fetch'); }) as unknown as typeof fetch;
+    expect(await listOllamaModels({ fetch: down })).toBeNull();
+    expect(await listOllamaModels({ fetch: fakeFetch(() => new Response('', { status: 500 })).fetch })).toBeNull();
+    expect(await listOllamaModels({ fetch: fakeFetch(() => tags([])).fetch })).toBeNull();
   });
 
   it('rejects on HTTP errors and malformed bodies, so the General falls back', async () => {

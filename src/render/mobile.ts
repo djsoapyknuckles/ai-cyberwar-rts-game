@@ -26,8 +26,10 @@ export type BatterySaver = 'auto' | 'on' | 'off';
 export interface GameSettings {
   renderer?: string;
   map?: string;
-  /** Opponent strategy id, or 'llm' for the cloud General (the player's own API key). */
+  /** Opponent strategy id, 'llm' for the cloud General (the player's own API key), 'llm-local' or 'blind' (Ollama). */
   ai?: string;
+  /** Ollama model for the local General and the blind test. */
+  localModel?: string;
   /** Quick match: richer start and faster claiming, for short sessions. */
   quick?: boolean;
   vibrate?: boolean;
@@ -128,6 +130,7 @@ export function createMobileBar(root: HTMLElement, actions: {
     const next: Required<GameSettings> = {
       renderer: pick('set-renderer'), map: pick('set-map'), ai: pick('set-ai'), quick: pick('set-quick') === 'quick',
       vibrate: pick('set-vibrate') === 'on', battery: pick('set-battery') as BatterySaver, difficulty: pick('set-difficulty'),
+      localModel: cur.localModel,
     };
     saveSettings(next);
     const newGame = next.renderer !== cur.renderer || next.map !== cur.map || next.ai !== cur.ai || next.quick !== cur.quick || next.difficulty !== cur.difficulty;

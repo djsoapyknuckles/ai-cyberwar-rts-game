@@ -12,7 +12,7 @@ import '@fontsource/chakra-petch/latin-500.css';
 import '@fontsource/chakra-petch/latin-600.css';
 import '@fontsource/chakra-petch/latin-700.css';
 import './ui.css';
-import { createLlmBrain, createOllamaClient, type LlmClient } from './ai/llm/client.ts';
+import { createLlmBrain, createOllamaClient, listOllamaModels, type LlmClient } from './ai/llm/client.ts';
 import { filterChat } from './ai/llm/filter.ts';
 import { createGeneral } from './ai/llm/general.ts';
 import { forgetKey, loadKey, saveKey, type KeyStorage } from './ai/llm/keystore.ts';
@@ -32,7 +32,7 @@ import { createGroups, groupCenter, ownIds, recallGroup, saveGroup, tapGroup } f
 import { createSound, cueFor } from './render/sound.ts';
 import { boxSelectWhere, describeAt, describeMode, key, modeClick, pickOwn, rightClick, sameTypeWhere, type UiState } from './render/input.ts';
 import { batterySaverActive, createMobileBar, isTouchUi, loadSettings, promptResume, saveSettings, touchWords } from './render/mobile.ts';
-import { promptSetup } from './render/setup.ts';
+import { FULL_STRENGTH, promptSetup } from './render/setup.ts';
 import { DIFFICULTY, isDifficulty } from './ai/difficulty.ts';
 import { compatible, fastForward, snapshot, type SavedMatch } from './harness/resume.ts';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -58,20 +58,27 @@ const touchUi = isTouchUi(params);
 const setupDone = !resume && !params.has('autostart') && !params.has('ai') && !params.has('seed') && !params.has('stress');
 if (setupDone) {
   const s = loadSettings();
-  const choice = await promptSetup({
-    ai: s.ai && (OPPONENTS[s.ai] || s.ai === 'llm') ? s.ai : 'training',
+  // The local General and the blind test are offered only when an Ollama answers (phones never have one).
+  const localModels = touchUi ? null : await listOllamaModels(params.get('ollama') ? { url: params.get('ollama')! } : {});
+  const { model: localModel, ...choice } = await promptSetup({
+    ai: s.ai && (OPPONENTS[s.ai] || FULL_STRENGTH.has(s.ai)) ? s.ai : 'training',
     difficulty: isDifficulty(s.difficulty) ? s.difficulty : 'normal',
     map: s.map && MAPS[s.map] ? s.map : 'duel',
     renderer: s.renderer ?? 'pixi',
     quick: !!s.quick,
-  }, Object.values(MAPS).map((m) => ({ id: m.id, name: m.name })), ['training', ...Object.keys(OPPONENTS).filter((o) => o !== 'training'), 'llm'], touchUi);
-  saveSettings({ ...s, ...choice });
+    model: s.localModel ?? 'qwen3:8b',
+  }, Object.values(MAPS).map((m) => ({ id: m.id, name: m.name })),
+  ['training', ...Object.keys(OPPONENTS).filter((o) => o !== 'training'), 'llm', ...(localModels ? ['llm-local', 'blind'] : [])], touchUi, localModels);
+  saveSettings({ ...s, ...choice, localModel });
 }
 // The settings (setup screen or the phone menu) pick view, map, opponent and difficulty; URL options still win.
 const saved = loadSettings();
 let vibrateOn = saved.vibrate ?? true;
-const savedLlm = !params.get('ai') && !resume && saved.ai === 'llm';
-const aiParam = resume?.ai ?? params.get('ai') ?? (savedLlm ? 'llm' : saved.ai && OPPONENTS[saved.ai] ? saved.ai : 'training');
+const fromSaved = !params.get('ai') && !resume;
+const savedLlm = fromSaved && saved.ai === 'llm';
+const savedLocal = fromSaved && (saved.ai === 'llm-local' || saved.ai === 'blind');
+const aiParam = resume?.ai ?? params.get('ai')
+  ?? (savedLlm || (savedLocal && saved.ai === 'llm-local') ? 'llm' : savedLocal ? 'blind' : saved.ai && OPPONENTS[saved.ai] ? saved.ai : 'training');
 // Quick match (mobile port): a richer start and faster claiming, for short sessions on a phone.
 const quick = resume ? resume.quick : params.has('quick') || !!saved.quick;
 if (quick) {
@@ -85,7 +92,10 @@ const blind = aiParam === 'blind';
 const useLlm = aiParam === 'llm' || (blind && Math.random() < 0.5);
 const baseStrategy = useLlm || blind ? STRATEGIES[params.get('base') ?? 'boom'] ?? STRATEGIES.boom! : OPPONENTS[aiParam] ?? TRAINING;
 // Difficulty handicaps the AI only: slower reactions, fewer actions, less micro, a smaller economy.
+// The LLM General and the blind test always play at full strength (Hard): that is how the General is
+// benchmarked (Gate 2), and a blind test is only fair if both candidates play alike.
 const difficultyId = resume ? (isDifficulty(resume.difficulty) ? resume.difficulty : 'hard')
+  : useLlm || blind ? 'hard'
   : isDifficulty(params.get('difficulty')) ? params.get('difficulty') as 'easy' | 'normal' | 'hard'
   : isDifficulty(saved.difficulty) ? saved.difficulty : 'normal';
 const level = DIFFICULTY[difficultyId];
@@ -94,7 +104,7 @@ const seed = resume?.seed ?? Number(params.get('seed') ?? Date.now() % 100000);
 const humanBot = STRATEGIES[params.get('human') ?? ''];
 // Model names use only these characters; anything else is dropped (the name is shown in HTML).
 const cloud = params.get('provider') === 'openai' || savedLlm;
-let model = (params.get('model') ?? (cloud ? '' : 'qwen3:8b')).replace(/[^\w.:/-]/g, '');
+let model = (params.get('model') ?? (savedLocal ? saved.localModel ?? 'qwen3:8b' : cloud ? '' : 'qwen3:8b')).replace(/[^\w.:/-]/g, '');
 const ollama = params.get('ollama');
 let client: LlmClient | null = null;
 // D-020: the player's own key, entered when needed, kept for the session (or on this device if they ask).
@@ -118,7 +128,7 @@ if (useLlm && cloud) {
   client = createOllamaClient({ model, think: false, ...(ollama ? { url: ollama } : {}) });
 }
 const general = client ? createGeneral('ai', createLlmBrain(client, 'ai'), strategy, { seed }) : null;
-const aiName = blind ? 'AI (blind test)' : general ? `The Model (${model}) · ${level.label}` : `AI (${strategy.name}) · ${level.label}`;
+const aiName = blind ? 'AI (blind test)' : general ? `The Model (${model})` : `AI (${strategy.name}) · ${level.label}`;
 // ?map=duel|long picks the map (#5); unknown ids fall back to Duel.
 const mapParam = resume?.mapId ?? params.get('map') ?? saved.map ?? '';
 const mapId = MAPS[mapParam] ? mapParam : 'duel';
@@ -401,7 +411,7 @@ const mobileBar = touchUi ? createMobileBar(hudRoot, {
 }, {
   current: {
     renderer: kind, map: mapId, ai: useLlm && cloud ? 'llm' : OPPONENTS[aiParam] ? aiParam : 'training', quick,
-    vibrate: vibrateOn, battery: saved.battery ?? 'auto', difficulty: difficultyId,
+    vibrate: vibrateOn, battery: saved.battery ?? 'auto', difficulty: difficultyId, localModel: saved.localModel ?? 'qwen3:8b',
   },
   maps: Object.values(MAPS).map((m) => ({ id: m.id, name: m.name })),
   opponents: [...Object.keys(OPPONENTS), 'llm'],
