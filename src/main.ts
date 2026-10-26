@@ -17,6 +17,7 @@ import { filterChat } from './ai/llm/filter.ts';
 import { createGeneral } from './ai/llm/general.ts';
 import { forgetKey, loadKey, saveKey, type KeyStorage } from './ai/llm/keystore.ts';
 import { createOpenAiClient } from './ai/llm/openai.ts';
+import { createVoxtaClient, detectVoxta, VOXTA_MODEL, voxtaPort } from './ai/llm/voxta.ts';
 import { promptForKey } from './render/keyprompt.ts';
 import { createScriptedBot, OPPONENTS, STRATEGIES, TRAINING } from './ai/scripted.ts';
 import { createChatPanel } from './render/chat.ts';
@@ -59,8 +60,12 @@ const touchUi = isTouchUi(params);
 const setupDone = !resume && !params.has('autostart') && !params.has('ai') && !params.has('seed') && !params.has('stress');
 if (setupDone) {
   const s = loadSettings();
-  // The local General and the blind test are offered only when an Ollama answers (phones never have one).
-  const localModels = touchUi ? null : await listOllamaModels(params.get('ollama') ? { url: params.get('ollama')! } : {});
+  // The local General and the blind test are offered only when an Ollama answers, the Voxta General only when a
+  // Voxta does (D-022). Phones never probe.
+  const [localModels, voxtaFound] = touchUi ? [null, null] : await Promise.all([
+    listOllamaModels(params.get('ollama') ? { url: params.get('ollama')! } : {}),
+    detectVoxta({ port: voxtaPort(params.get('voxtaPort')) }),
+  ]);
   const { model: localModel, ...choice } = await promptSetup({
     ai: s.ai && (OPPONENTS[s.ai] || FULL_STRENGTH.has(s.ai)) ? s.ai : 'training',
     difficulty: isDifficulty(s.difficulty) ? s.difficulty : 'normal',
@@ -69,7 +74,8 @@ if (setupDone) {
     quick: !!s.quick,
     model: s.localModel ?? 'qwen3:8b',
   }, Object.values(MAPS).map((m) => ({ id: m.id, name: m.name })),
-  ['training', ...Object.keys(OPPONENTS).filter((o) => o !== 'training'), 'llm', ...(localModels ? ['llm-local', 'blind'] : [])], touchUi, localModels);
+  ['training', ...Object.keys(OPPONENTS).filter((o) => o !== 'training'), 'llm', ...(localModels ? ['llm-local', 'blind'] : []),
+    ...(voxtaFound ? ['llm-voxta'] : [])], touchUi, localModels);
   saveSettings({ ...s, ...choice, localModel });
 }
 // The settings (setup screen or the phone menu) pick view, map, opponent and difficulty; URL options still win.
@@ -78,8 +84,9 @@ let vibrateOn = saved.vibrate ?? true;
 const fromSaved = !params.get('ai') && !resume;
 const savedLlm = fromSaved && saved.ai === 'llm';
 const savedLocal = fromSaved && (saved.ai === 'llm-local' || saved.ai === 'blind');
+const savedVoxta = fromSaved && saved.ai === 'llm-voxta';
 const aiParam = resume?.ai ?? params.get('ai')
-  ?? (savedLlm || (savedLocal && saved.ai === 'llm-local') ? 'llm' : savedLocal ? 'blind' : saved.ai && OPPONENTS[saved.ai] ? saved.ai : 'training');
+  ?? (savedLlm || savedVoxta || (savedLocal && saved.ai === 'llm-local') ? 'llm' : savedLocal ? 'blind' : saved.ai && OPPONENTS[saved.ai] ? saved.ai : 'training');
 // Quick match (mobile port): a richer start and faster claiming, for short sessions on a phone.
 const quick = resume ? resume.quick : params.has('quick') || !!saved.quick;
 if (quick) {
@@ -104,8 +111,10 @@ const strategy = level.tweak(baseStrategy);
 const seed = resume?.seed ?? Number(params.get('seed') ?? Date.now() % 100000);
 const humanBot = STRATEGIES[params.get('human') ?? ''];
 // Model names use only these characters; anything else is dropped (the name is shown in HTML).
-const cloud = params.get('provider') === 'openai' || savedLlm;
-let model = (params.get('model') ?? (savedLocal ? saved.localModel ?? 'qwen3:8b' : cloud ? '' : 'qwen3:8b')).replace(/[^\w.:/-]/g, '');
+// Which service runs the General: Voxta (D-022), the OpenAI API (D-020), or Ollama on this machine.
+const viaVoxta = params.get('provider') === 'voxta' || (savedVoxta && !params.get('provider'));
+const cloud = !viaVoxta && (params.get('provider') === 'openai' || savedLlm);
+let model = (viaVoxta ? VOXTA_MODEL : params.get('model') ?? (savedLocal ? saved.localModel ?? 'qwen3:8b' : cloud ? '' : 'qwen3:8b')).replace(/[^\w.:/-]/g, '');
 const ollama = params.get('ollama');
 let client: LlmClient | null = null;
 // D-020: the player's own key, entered when needed, kept for the session (or on this device if they ask).
@@ -113,7 +122,18 @@ const keyStore = (s: () => Storage): KeyStorage => ({
   getItem: (k) => s().getItem(k), setItem: (k, v) => s().setItem(k, v), removeItem: (k) => s().removeItem(k),
 });
 const [keySession, keyLocal] = [keyStore(() => sessionStorage), keyStore(() => localStorage)];
-if (useLlm && cloud) {
+if (useLlm && viaVoxta) {
+  // A Voxta that lets local apps in needs no key; one that answers 401 gets the player's key (inference scope).
+  const port = voxtaPort(params.get('voxtaPort'));
+  if (params.has('newkey')) forgetKey(keySession, keyLocal, 'voxta');
+  let apiKey = loadKey(keySession, keyLocal, 'voxta');
+  if (!apiKey && await detectVoxta({ port }) === 'needs-key') {
+    const answer = await promptForKey(model, true, { kind: 'voxta', port });
+    if (answer?.key) { saveKey(answer.key, answer.remember, keySession, keyLocal, 'voxta'); apiKey = answer.key; }
+  }
+  // Even when detection failed, try: the General's offline message then says what to check (CORS, key, server).
+  client = createVoxtaClient({ apiKey: apiKey ?? '', port });
+} else if (useLlm && cloud) {
   const [session, local] = [keySession, keyLocal];
   if (params.has('newkey')) forgetKey(session, local);
   let apiKey = loadKey(session, local);
@@ -129,11 +149,11 @@ if (useLlm && cloud) {
   client = createOllamaClient({ model, think: false, ...(ollama ? { url: ollama } : {}) });
 }
 const general = client ? createGeneral('ai', createLlmBrain(client, 'ai'), strategy, { seed }) : null;
-const aiName = blind ? 'AI (blind test)' : general ? `The Model (${model})` : `AI (${strategy.name}) · ${level.label}`;
+const aiName = blind ? 'AI (blind test)' : general ? `The Model (${viaVoxta ? 'Voxta' : model})` : `AI (${strategy.name}) · ${level.label}`;
 // Who played the AI side, saved with the replay; a blind test also records the player's guess.
 const opponent: OpponentInfo = {
   kind: general ? 'llm' : 'scripted', strategy: baseStrategy.name, difficulty: difficultyId, blind,
-  ...(general ? { model, provider: cloud ? 'openai' as const : 'ollama' as const } : {}),
+  ...(general ? { model, provider: viaVoxta ? 'voxta' as const : cloud ? 'openai' as const : 'ollama' as const } : {}),
 };
 const tallyStore: TallyStorage = { getItem: (k) => localStorage.getItem(k), setItem: (k, v) => localStorage.setItem(k, v) };
 // ?map=duel|long picks the map (#5); unknown ids fall back to Duel.

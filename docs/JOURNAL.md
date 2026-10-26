@@ -2,6 +2,12 @@
 
 The story of building this game, newest first. Wins, failures, surprises, and what the agents did well or badly. Anyone can add an entry.
 
+## 2026-10-26 — Bring your own General, through Voxta
+
+- The owner wants players to hook their own AI into the game. Voxta (real-time voice chat with AI characters) turned out to serve an OpenAI-compatible endpoint itself, backed by whatever model the player configured in it. So the cloud client from D-020 needed only a local address, its own key slot, and no Authorization header when Voxta lets local apps in (D-022).
+- Reading Voxta's source answered the question that mattered. Its "OpenAI Compatible" module points the other way (Voxta calling such services); the endpoint the game needs lives in Voxta's server and needs an API key with the `inference` scope. It drops `response_format`, so our validator is the safety net.
+- The bigger idea, a Voxta *character* as the General that talks back, is drafted as proposal 0004.
+
 ## 2026-10-26 — The owner can tell
 
 - Gate 2's blind test is passed: 4 of 4 guessed right, two LLM matches and two scripted ones. The owner: "I was able to clearly tell whether I was playing against the LLM vs just a scripted bot."
