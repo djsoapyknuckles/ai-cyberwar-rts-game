@@ -9,6 +9,8 @@ import { createOpenAiClient } from './openai.ts';
 export const VOXTA_DEFAULT_PORT = 5384;
 /** Voxta ignores the model name and uses the player's configured text service. */
 export const VOXTA_MODEL = 'voxta-textgen';
+/** A turn is a few hundred tokens of JSON; Voxta's own default reply length is far shorter. */
+export const VOXTA_MAX_TOKENS = 1024;
 
 /** A valid TCP port, else the default (the port comes from a URL parameter). */
 export function voxtaPort(raw: string | null | undefined): number {
@@ -38,12 +40,19 @@ export async function detectVoxta(opts: { port?: number; timeoutMs?: number; fet
 export function createVoxtaClient(opts: { apiKey?: string; port?: number; baseUrl?: string; fetch?: typeof fetch }): LlmClient {
   const inner = createOpenAiClient({
     model: VOXTA_MODEL, apiKey: opts.apiKey ?? '', baseUrl: opts.baseUrl ?? voxtaBaseUrl(opts.port),
+    // Without it Voxta uses the profile's reply length, which cut turns off mid-JSON (about 190 characters).
+    maxTokens: VOXTA_MAX_TOKENS,
     ...(opts.fetch ? { fetch: opts.fetch } : {}),
   });
   return {
     name: 'voxta',
     complete: (req, signal) => inner.complete(req, signal).catch((e: unknown) => {
-      throw new Error(String(e instanceof Error ? e.message : e).replace(/^openai/, 'voxta')
+      const message = String(e instanceof Error ? e.message : e);
+      // Voxta refuses a wrong or under-scoped key with an empty body; say what to do instead.
+      if (/^openai (401|403)/.test(message)) {
+        throw new Error(`voxta ${message.slice(7, 10)}: the key was refused. Use a Voxta API key with the inference scope; reload with &newkey to enter it again.`);
+      }
+      throw new Error(message.replace(/^openai/, 'voxta')
         .replace('Reload with &newkey to enter the key again.', 'Check Voxta is running, the key has the inference scope, and this page is in Voxta\'s Cors:AllowedOrigins.'));
     }),
   };

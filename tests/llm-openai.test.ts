@@ -30,6 +30,7 @@ describe('OpenAI-compatible client', () => {
     expect(calls[0]!.headers.authorization).toBe(`Bearer ${KEY}`);
     expect(calls[0]!.body).toMatchObject({ model: 'some-model', response_format: { type: 'json_object' } });
     expect(calls[0]!.body).not.toHaveProperty('temperature');
+    expect(calls[0]!.body).not.toHaveProperty('max_tokens');
     expect(JSON.stringify(calls[0]!.body)).not.toContain(KEY);
     const messages = calls[0]!.body.messages as { role: string; content: string }[];
     expect(messages.map((m) => m.role)).toEqual(['system', 'user']);

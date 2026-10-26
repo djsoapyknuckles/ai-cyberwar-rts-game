@@ -11,6 +11,8 @@ export interface OpenAiOptions {
   baseUrl?: string;
   /** Omitted unless set: some models only accept their default temperature. */
   temperature?: number;
+  /** Reply length cap, sent as max_tokens. Omitted unless set: some OpenAI models reject max_tokens. */
+  maxTokens?: number;
   /** Injected in tests. */
   fetch?: typeof fetch;
 }
@@ -37,6 +39,7 @@ export function createOpenAiClient(opts: OpenAiOptions): LlmClient {
           // validator checks the shape (tools.ts), so a reply that drifts from the schema is caught there.
           response_format: { type: 'json_object' },
           ...(opts.temperature === undefined ? {} : { temperature: opts.temperature }),
+          ...(opts.maxTokens === undefined ? {} : { max_tokens: opts.maxTokens }),
         }),
         signal,
       }).catch((e: unknown) => {

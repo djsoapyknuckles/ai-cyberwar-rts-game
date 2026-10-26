@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadKey, saveKey, type KeyStorage } from '../src/ai/llm/keystore.ts';
-import { createVoxtaClient, detectVoxta, VOXTA_MODEL, voxtaPort } from '../src/ai/llm/voxta.ts';
+import { createVoxtaClient, detectVoxta, VOXTA_MAX_TOKENS, VOXTA_MODEL, voxtaPort } from '../src/ai/llm/voxta.ts';
 
 // D-022: Voxta as an LLM provider through its OpenAI-compatible endpoint. No network: fetch is faked.
 type Call = { url: string; headers: Record<string, string>; body: Record<string, unknown> };
@@ -40,6 +40,8 @@ describe('Voxta provider', () => {
     expect(withKey.calls[0]!.url).toBe('http://localhost:5384/v1/chat/completions');
     expect(withKey.calls[0]!.headers.authorization).toBe('Bearer vx-key-123');
     expect(withKey.calls[0]!.body.model).toBe(VOXTA_MODEL);
+    // Voxta's own default reply length cut turns off mid-JSON in the live test.
+    expect(withKey.calls[0]!.body.max_tokens).toBe(VOXTA_MAX_TOKENS);
     const noKey = fakeFetch(() => reply('{}'));
     await createVoxtaClient({ fetch: noKey.fetch }).complete({ system: 's', user: 'u', schema: {} });
     expect(noKey.calls[0]!.headers).not.toHaveProperty('authorization');
@@ -51,6 +53,10 @@ describe('Voxta provider', () => {
     expect(err).toMatch(/^voxta:/);
     expect(err).toContain('inference scope');
     expect(err).toContain('Cors:AllowedOrigins');
+    // A wrong key: Voxta answers 401 with an empty body.
+    const refused = createVoxtaClient({ apiKey: 'vx-wrong', fetch: fakeFetch(() => new Response('', { status: 401 })).fetch });
+    expect(await refused.complete({ system: '', user: '', schema: {} }).catch((e: Error) => e.message))
+      .toBe('voxta 401: the key was refused. Use a Voxta API key with the inference scope; reload with &newkey to enter it again.');
   });
 
   it('keeps the Voxta key in its own slot, apart from the OpenAI key', () => {

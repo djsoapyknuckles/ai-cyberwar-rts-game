@@ -58,6 +58,8 @@ if (!params.has('seed') && !params.has('human') && !params.has('ai')) {
 // Skipped when resuming, with ?autostart, or when the link already picks the opponent or seed.
 const touchUi = isTouchUi(params);
 const setupDone = !resume && !params.has('autostart') && !params.has('ai') && !params.has('seed') && !params.has('stress');
+/** What the setup screen learned about Voxta, so the page asks Voxta only once (each unkeyed check logs a 401 there). */
+let voxtaSeen: Awaited<ReturnType<typeof detectVoxta>> | undefined;
 if (setupDone) {
   const s = loadSettings();
   // The local General and the blind test are offered only when an Ollama answers, the Voxta General only when a
@@ -76,6 +78,7 @@ if (setupDone) {
   }, Object.values(MAPS).map((m) => ({ id: m.id, name: m.name })),
   ['training', ...Object.keys(OPPONENTS).filter((o) => o !== 'training'), 'llm', ...(localModels ? ['llm-local', 'blind'] : []),
     ...(voxtaFound ? ['llm-voxta'] : [])], touchUi, localModels);
+  voxtaSeen = voxtaFound;
   saveSettings({ ...s, ...choice, localModel });
 }
 // The settings (setup screen or the phone menu) pick view, map, opponent and difficulty; URL options still win.
@@ -127,7 +130,7 @@ if (useLlm && viaVoxta) {
   const port = voxtaPort(params.get('voxtaPort'));
   if (params.has('newkey')) forgetKey(keySession, keyLocal, 'voxta');
   let apiKey = loadKey(keySession, keyLocal, 'voxta');
-  if (!apiKey && await detectVoxta({ port }) === 'needs-key') {
+  if (!apiKey && (voxtaSeen === undefined ? await detectVoxta({ port }) : voxtaSeen) === 'needs-key') {
     const answer = await promptForKey(model, true, { kind: 'voxta', port });
     if (answer?.key) { saveKey(answer.key, answer.remember, keySession, keyLocal, 'voxta'); apiKey = answer.key; }
   }
