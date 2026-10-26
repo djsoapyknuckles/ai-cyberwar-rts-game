@@ -2,6 +2,17 @@
 
 Newest first. Each entry: date, decision, options considered, reason. Changes to design pillars need owner approval.
 
+## D-021 — 2026-10-26 — Gate 2 passed; qwen3:8b is the default local model
+- **Decision:** Phase 2 (the LLM General) is complete. The default local model is **qwen3:8b** (Ollama, thinking off, 4,096-token context). The default cloud model is chosen once a key is available to run the Gate 2 head-to-head with (#29).
+- **Evidence (all Gate 2 criteria):**
+  - Win criterion (D-019): 95% vs the control's 58% over 60 seeds (+37). Re-confirmed on current `main` after #38–#52 (seeds 1–30: 97% vs 53%).
+  - Invalid-command rate 0% (0 of 3,166 orders); p95 decision latency 1.5 s.
+  - Owner blind test: 4 of 4 guessed right; "I was able to clearly tell whether I was playing against the LLM vs just a scripted bot."
+  - Cloud mode in scope (D-020).
+- **Why qwen3:8b:** the only model measured, and it passes every criterion with margin. It needs about 5.6 GB of GPU memory, so 8 GB cards can run it; responses take about 1 s on an RTX 3090. Larger models are untested (#29) and can replace it if they measure better.
+- **Carried forward:** faction balance warnings (#32: turtle weak against pressure, AI-favored boom/turtle mirrors); bot proxy warnings (skill test). Neither blocks the gate (D-019).
+- **Approved:** owner, 2026-10-26.
+
 ## D-020 — 2026-10-25 — Cloud General: OpenAI-compatible API, player's own key in the browser
 - **Decision:** cloud mode is in scope (Gate 2 owner decision), for players who can't or don't want to run Ollama.
   - **Provider:** an OpenAI-compatible `/chat/completions` client (`src/ai/llm/openai.ts`), so OpenAI and compatible services (OpenRouter, Groq, LM Studio, Ollama's `/v1`) all work. JSON mode for the reply; the turn validator checks its shape.

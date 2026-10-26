@@ -154,12 +154,13 @@ Timeboxes assume ~8 hrs/week. Overrunning a timebox by 50% triggers an owner rev
 - M2.6 Model bake-off: run batch matches per model size; record win rate vs scripted AI, invalid-command rate, p95 latency, VRAM, cost.
   - ✅ Runner: `npm run llm-match` plays full headless matches against a real model (lockstep: the sim waits for the reply, which then costs its measured latency in ticks), with `--control` for an attack-every-turn baseline.
   - First numbers (qwen3:8b, 3090, 10 seeds per strategy): LLM wins 80% / 90% / 100% vs boom / rush / turtle; 0 invalid orders out of 1,725; p95 latency 1.5 s. But the attack-every-turn control scores 90% / 80% / 100%, so the win rate does not yet show judgment (see JOURNAL).
+- **Status (2026-10-26): ✅ Gate 2 passed (D-021).** The LLM General beats the attack-every-turn control by 37 points with no invalid orders and 1.5 s p95 latency, and the owner told it apart from the scripted AI in 4 of 4 blind matches. Default local model: qwen3:8b. Cloud mode is in (D-020); its default model waits for a key (#29). Next: Phase 3.
 - **Gate 2 criteria:**
   - Win criterion (D-018, amended by D-019): head-to-head against the attack-every-turn control, ≥30 seeds. The best local model (AI side) wins ≥15 points more than the control does against itself (baseline B) on the same seeds. First result: qwen3:8b 90% vs B 73% over 60 seeds (+17), but both sides then fed units in one at a time. With massed waves (owner replay seed 88632): qwen3:8b 33% vs B 58% (−25). An ablation traced that to the build-plan tool wording (the model copied its starting 3–4 workers and built no racks); with healthy targets: **qwen3:8b 95% vs B 58% over 60 seeds (+37), met**. The best fixed policy found (control + a 6/2/2 build plan) reaches 82%.
   - Warnings, not gate criteria (D-019): scripted bots hold the control to ≤60% per strategy and side; scripted mirrors are 40–60%.
   - Invalid-command rate <2%; p95 decision latency <3 s.
   - ✅ Owner blind test: LLM General feels noticeably different from scripted AI. Passed 2026-10-26: 4 of 4 guessed right (2 LLM, 2 scripted Boom; seeds 13054, 56816, 33375, 18486). Owner's reasons: the scripted bot never adapted (it barely countered a Red Team-heavy army); the LLM's opening was different (an unusual early unit mix, workers doing different jobs).
-  - **Owner decision:** default model tier and whether cloud mode is in scope.
+  - ✅ **Owner decision:** default model tier (qwen3:8b, local; D-021) and whether cloud mode is in scope (yes, D-020).
 
 ### Phase 3 — Depth & Identity (6–10 weeks)
 - M3.1 Adaptation, full version: retraining queue, Compute cost, tuned cap/decay from Phase 1 data.
