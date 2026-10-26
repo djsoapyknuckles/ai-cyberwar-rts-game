@@ -61,8 +61,8 @@ export function createVoxtaBrain(opts: VoxtaBrainOptions): Brain & { close(): vo
   let started: Promise<void> | null = null;
   let busy = false;
   const brain = async ({ digest, youSaid }: Parameters<Brain>[0]): Promise<string | null> => {
-    // One turn at a time: a chat can't answer two at once, so a turn asked while one is out counts as late.
-    if (busy) return null;
+    // One turn at a time: a turn asked while one is out (or still finishing after a timeout) counts as late.
+    if (busy || opts.chat.busy) return null;
     busy = true;
     try {
       started ??= opts.chat.start({ characterId: opts.characterId, tools: voxtaTools(opts.faction), context: systemPrompt(opts.faction, 'tools') });

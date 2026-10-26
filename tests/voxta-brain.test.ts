@@ -21,6 +21,7 @@ function fakeChat(replies: (VoxtaTurn | Error)[], delayMs = 0) {
       if (r instanceof Error) throw r;
       return r;
     },
+    busy: false,
     close: () => { closed = true; },
   };
   return { chat, sent, starts, closed: () => closed };
@@ -77,6 +78,13 @@ describe('Voxta character brain', () => {
     expect(seen).toHaveLength(2);
     brain.close();
     expect(f.closed()).toBe(true);
+  });
+
+  it('a turn asked while the chat is still finishing a timed-out reply is late, and sends nothing', async () => {
+    const f = fakeChat([reply([])]);
+    const brain = createVoxtaBrain({ chat: { ...f.chat, busy: true }, characterId: 'c1', faction: 'ai' });
+    expect(await brain({ tick: 0, digest })).toBeNull();
+    expect(f.sent).toHaveLength(0);
   });
 
   it('a turn asked while one is out is late (null); a failed turn throws for the fallback', async () => {

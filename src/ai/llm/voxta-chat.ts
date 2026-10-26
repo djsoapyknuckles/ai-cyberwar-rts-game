@@ -39,6 +39,11 @@ export interface VoxtaChat {
   start(opts: { characterId: string; tools: VoxtaTool[]; context: string }): Promise<void>;
   /** Send one game turn and wait for the character's reply (tool calls, text, audio). */
   turn(text: string, timeoutMs?: number): Promise<VoxtaTurn>;
+  /**
+   * True while the character is still answering, even after `turn` gave up on it. Voxta merges a message
+   * sent mid-reply into the pending one and aborts the reply, so callers must not send until this clears.
+   */
+  readonly busy: boolean;
   close(): void;
 }
 
@@ -52,6 +57,9 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
   let ready: Promise<void> | null = null;
   let sessionId: string | null = null;
   let closed = false;
+  /** When the reply in progress was asked for (ms), or null; a reply silent this long is given up on. */
+  let askedAt: number | null = null;
+  const STUCK_MS = 30_000;
   /** Waiters for the next message of a type; a failure (error message or disconnect) rejects them all. */
   const waiters: { type: string; resolve: (m: Msg) => void; reject: (e: Error) => void }[] = [];
   /** Reply being collected; finished on replyEnd. */
@@ -61,6 +69,7 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
   let onFail: ((e: Error) => void) | null = null;
 
   const fail = (e: Error) => {
+    askedAt = null;
     for (const w of waiters.splice(0)) w.reject(e);
     onFail?.(e);
   };
@@ -99,12 +108,22 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
       case 'replyEnd': {
         const done = current ?? empty();
         current = null;
+        askedAt = null;
         const reply: VoxtaTurn = { messageId: String(msg.messageId ?? ''), text: done.text.join(' ').trim(), audioUrls: done.audio, calls: done.calls };
         // Voxta holds the chat until the client says this reply's speech has played.
         void playback(reply).catch(() => {}).finally(() => send({ $type: 'speechPlaybackComplete', sessionId, messageId: reply.messageId }));
         onReply?.(reply);
         break;
       }
+      case 'replyCancelled':
+        current = null;
+        askedAt = null;
+        break;
+      case 'chatFlow':
+        // An interrupted reply may end with no replyCancelled; the chat waiting for input again says it's over.
+        // Only trusted after a timeout: while a turn waits, this state can still show before the reply starts.
+        if (msg.state === 'WaitingForUserInput' && !onReply) { current = null; askedAt = null; }
+        break;
       case 'error': case 'chatSessionError': case 'missingResourcesError':
         fail(new Error(`voxta ${msg.$type}: ${String(msg.message ?? msg.details ?? '').slice(0, 200)}`));
         break;
@@ -171,12 +190,24 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
 
     turn(text, timeoutMs = 10_000) {
       if (!sessionId) return Promise.reject(new Error('voxta: no chat started'));
+      if (this.busy) return Promise.reject(new Error('voxta: still answering the last turn'));
+      askedAt = Date.now();
       return new Promise<VoxtaTurn>((resolve, reject) => {
-        const t = setTimeout(() => { onReply = null; onFail = null; reject(new Error('voxta: no reply in time')); }, timeoutMs);
+        const t = setTimeout(() => {
+          onReply = null; onFail = null;
+          // Stop the reply; the chat stays busy until Voxta confirms it ended.
+          send({ $type: 'interrupt', sessionId });
+          reject(new Error('voxta: no reply in time'));
+        }, timeoutMs);
         onReply = (reply) => { clearTimeout(t); onReply = null; onFail = null; resolve(reply); };
         onFail = (e) => { clearTimeout(t); onReply = null; onFail = null; reject(e); };
-        send({ $type: 'send', sessionId, text, doReply: true, doCharacterActionInference: false });
+        // No action inference on either side: each would be an extra model call per turn, and orders come from tools.
+        send({ $type: 'send', sessionId, text, doReply: true, doUserActionInference: false, doCharacterActionInference: false });
       });
+    },
+
+    get busy() {
+      return askedAt !== null && Date.now() - askedAt < STUCK_MS;
     },
 
     close() {

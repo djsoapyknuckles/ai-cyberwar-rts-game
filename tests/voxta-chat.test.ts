@@ -6,7 +6,7 @@ const RS = '\x1e';
 type Msg = { $type: string; [k: string]: unknown };
 
 /** A fake Voxta hub: answers the handshake and messages the way the spike saw the real server do. */
-function fakeVoxta(script: { greeting?: boolean; reply?: 'normal' | 'silent' | 'error' | 'close' } = {}) {
+function fakeVoxta(script: { greeting?: boolean; reply?: 'normal' | 'silent' | 'error' | 'close'; interrupted?: Msg } = {}) {
   const sent: Msg[] = [];
   let url = '';
   const listeners: Record<string, ((e: { data?: unknown; code?: number }) => void)[]> = {};
@@ -30,6 +30,7 @@ function fakeVoxta(script: { greeting?: boolean; reply?: 'normal' | 'silent' | '
         push({ $type: 'chatStarted', sessionId: 's1', chatStyle: 'Roleplay' });
         if (script.greeting !== false) reply('g1', 'So, a human wants to play.');
       }
+      if (msg.$type === 'interrupt') push(script.interrupted ?? { $type: 'replyCancelled', sessionId: 's1' });
       if (msg.$type === 'send') {
         if (script.reply === 'silent') return;
         if (script.reply === 'error') { push({ $type: 'chatSessionError', message: 'model unavailable' }); return; }
@@ -76,7 +77,7 @@ describe('Voxta chat client', () => {
     expect(results.every((m) => m.sessionId === 's1' && m.isError === false)).toBe(true);
     expect(played).toEqual(['g1', 'r1']);
     expect(v.sent.filter((m) => m.$type === 'speechPlaybackComplete').map((m) => m.messageId)).toEqual(['g1', 'r1']);
-    expect(v.sent.find((m) => m.$type === 'send')).toMatchObject({ sessionId: 's1', text: 'GAME TURN 1', doReply: true });
+    expect(v.sent.find((m) => m.$type === 'send')).toMatchObject({ sessionId: 's1', text: 'GAME TURN 1', doReply: true, doUserActionInference: false, doCharacterActionInference: false });
     chat.close();
   });
 
@@ -94,6 +95,24 @@ describe('Voxta chat client', () => {
     const chat = createVoxtaChat({ apiKey: 'k', socket: fakeVoxta({ reply }).factory, greetingWaitMs: 50 });
     await chat.start({ characterId: 'c1', tools, context: '' });
     await expect(chat.turn('GAME TURN', 100)).rejects.toThrow(message);
+    chat.close();
+  });
+
+  it.each([
+    ['replyCancelled', { $type: 'replyCancelled', sessionId: 's1' }],
+    ['chatFlow WaitingForUserInput', { $type: 'chatFlow', sessionId: 's1', state: 'WaitingForUserInput' }],
+  ] as const)('after a timeout, interrupts the reply and stays busy until %s (no merged turns)', async (_, interrupted) => {
+    const v = fakeVoxta({ reply: 'silent', interrupted });
+    const chat = createVoxtaChat({ apiKey: 'k', socket: v.factory, greetingWaitMs: 50 });
+    await chat.start({ characterId: 'c1', tools, context: '' });
+    const first = chat.turn('GAME TURN 1', 50);
+    expect(chat.busy).toBe(true);
+    await expect(chat.turn('GAME TURN 2')).rejects.toThrow('still answering');
+    await expect(first).rejects.toThrow('no reply in time');
+    expect(v.sent.filter((m) => m.$type === 'send')).toHaveLength(1);
+    expect(v.sent.at(-1)).toMatchObject({ $type: 'interrupt', sessionId: 's1' });
+    await new Promise((r) => setTimeout(r, 10));
+    expect(chat.busy).toBe(false);
     chat.close();
   });
 
