@@ -2,6 +2,12 @@
 
 The story of building this game, newest first. Wins, failures, surprises, and what the agents did well or badly. Anyone can add an entry.
 
+## 2026-10-26 — The Model takes command
+
+- A Voxta character now plays the General (#58): the game's tools are declared to the character, each turn's digest goes in as a message, and its tool calls and spoken line come back as an ordinary turn. Against the attack-every-turn control on 10 seeds, "The Model" won 70%, the same as the control's own baseline: no edge, but no invalid orders in 650 and a new line every turn. Fun mode (D-023) has no bar to clear; qwen3:8b through the plain endpoint still plays better (+37).
+- The first long run produced a server log full of retries. A turn that timed out reached Voxta while it was still answering; Voxta merges such a message into the pending one and aborts the reply, so the merged message kept growing until it no longer fit the context window. Now the game interrupts a late reply and sends nothing until Voxta says the chat is free.
+- Reasoning set to off didn't stop the "Automatic" model from thinking for 5 s a turn; Voxta's source passes `effort: none` correctly, so the model reasons anyway. A dedicated preset for The Model with Reasoning Effort None cut turns from about 9 s to 3 s.
+
 ## 2026-10-26 — Bring your own General, through Voxta
 
 - The owner wants players to hook their own AI into the game. Voxta (real-time voice chat with AI characters) turned out to serve an OpenAI-compatible endpoint itself, backed by whatever model the player configured in it. So the cloud client from D-020 needed only a local address, its own key slot, and no Authorization header when Voxta lets local apps in (D-022).
