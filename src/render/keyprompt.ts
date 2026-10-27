@@ -4,7 +4,8 @@
 // api.openai.com or to Voxta on localhost: a base URL from a link could send a saved key elsewhere.
 export interface KeyAnswer { key: string; model: string; remember: boolean }
 
-export type KeyProvider = { kind: 'openai' } | { kind: 'voxta'; port: number };
+/** Voxta's `scope`: `inference` for its text endpoint (D-022), `chat` for a character General (D-023). */
+export type KeyProvider = { kind: 'openai' } | { kind: 'voxta'; port: number; scope?: 'inference' | 'chat' };
 
 export function promptForKey(model: string, needKey: boolean, provider: KeyProvider = { kind: 'openai' }): Promise<KeyAnswer | null> {
   return new Promise((resolve) => {
@@ -15,8 +16,8 @@ export function promptForKey(model: string, needKey: boolean, provider: KeyProvi
     form.innerHTML = voxta
       ? `
       <h2>Play your Voxta General</h2>
-      <p>Your Voxta server on this computer (localhost:<span data-port></span>) commands the AI, with whatever text
-      model you set up in Voxta. It needs a Voxta <b>API key with the inference scope</b> (Voxta → API keys). The key
+      <p>Your Voxta server on this computer (localhost:<span data-port></span>) commands the AI. It asks for a login,
+      so the game needs a Voxta <b>API key with the <span data-scope></span> scope</b> (Voxta → API keys). The key
       stays in this browser and is sent only to your Voxta. It is never added to the game, the URL or any file.</p>
       <input type="hidden" name="model">
       <label>API key <input type="password" name="key" autocomplete="off" spellcheck="false" required></label>
@@ -32,7 +33,10 @@ export function promptForKey(model: string, needKey: boolean, provider: KeyProvi
       <div class="actions"><button type="submit">Start</button> <button type="button" name="skip">Play the scripted AI instead</button></div>`;
     const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement;
     field('model').value = model;
-    if (provider.kind === 'voxta') form.querySelector('[data-port]')!.textContent = String(provider.port);
+    if (provider.kind === 'voxta') {
+      form.querySelector('[data-port]')!.textContent = String(provider.port);
+      form.querySelector('[data-scope]')!.textContent = provider.scope ?? 'inference';
+    }
     el.append(form);
     document.body.append(el);
     const done = (answer: KeyAnswer | null) => { el.remove(); resolve(answer); };

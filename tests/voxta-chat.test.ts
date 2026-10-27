@@ -122,6 +122,14 @@ describe('Voxta chat client', () => {
     chat.close();
   });
 
+  it('leaves the key out of the hub URL when there is none (a Voxta without a login)', async () => {
+    const v = fakeVoxta();
+    const chat = createVoxtaChat({ apiKey: '', socket: v.factory });
+    await chat.characters();
+    expect(v.url()).toBe('ws://localhost:5384/hub');
+    chat.close();
+  });
+
   it('refuses a turn before a chat is started', async () => {
     await expect(createVoxtaChat({ apiKey: 'k', socket: fakeVoxta().factory }).turn('x')).rejects.toThrow('no chat started');
   });

@@ -61,7 +61,8 @@ function within<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
 }
 
 export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
-  const url = `ws://localhost:${opts.port ?? VOXTA_DEFAULT_PORT}/hub?access_token=${encodeURIComponent(opts.apiKey)}`;
+  // A Voxta without a login needs no key; one with a login takes it here (chat scope).
+  const url = `ws://localhost:${opts.port ?? VOXTA_DEFAULT_PORT}/hub${opts.apiKey ? `?access_token=${encodeURIComponent(opts.apiKey)}` : ''}`;
   const playback = opts.playback ?? (async () => {});
   let socket: SocketLike | null = null;
   let ready: Promise<void> | null = null;
@@ -177,10 +178,11 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
 
   return {
     async characters() {
-      await connect();
+      const limit = opts.startTimeoutMs ?? 15_000;
+      await within(connect(), limit, 'voxta: no answer from the hub in time');
       const wait = next('charactersListLoaded');
       send({ $type: 'loadCharactersList' });
-      const list = (await wait).characters as { id: string; name: string }[] | undefined;
+      const list = (await within(wait, limit, 'voxta: no character list in time')).characters as { id: string; name: string }[] | undefined;
       return (list ?? []).map((c) => ({ id: String(c.id), name: String(c.name) }));
     },
 
