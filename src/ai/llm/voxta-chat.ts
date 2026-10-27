@@ -18,7 +18,10 @@ export interface VoxtaToolArgument { name: string; type: 'String' | 'Integer' | 
 export interface VoxtaTool { name: string; description: string; arguments: VoxtaToolArgument[] }
 
 export interface VoxtaToolCall { name: string; args: Record<string, unknown> }
-/** `text` is the line spoken after the last tool call (all of it if the reply called none). */
+/**
+ * One spoken part of a reply, with its audio. A character may speak before its tool calls and again after
+ * them, often saying the same thing twice; `text` and `audioUrls` are the last part that has words.
+ */
 export interface VoxtaReply { messageId: string; text: string; audioUrls: string[] }
 export interface VoxtaTurn extends VoxtaReply { calls: VoxtaToolCall[] }
 
@@ -73,9 +76,9 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
   const STUCK_MS = 30_000;
   /** Waiters for the next message of a type; a failure (error message or disconnect) rejects them all. */
   const waiters: { type: string; resolve: (m: Msg) => void; reject: (e: Error) => void }[] = [];
-  /** Reply being collected; finished on replyEnd. */
-  let current: { calls: VoxtaToolCall[]; text: string[]; audio: string[] } | null = null;
-  const empty = () => ({ calls: [], text: [], audio: [] });
+  /** Reply being collected, split into spoken parts at its tool calls; finished on replyEnd. */
+  let current: { calls: VoxtaToolCall[]; parts: { text: string[]; audio: string[] }[] } | null = null;
+  const empty = () => ({ calls: [] as VoxtaToolCall[], parts: [{ text: [] as string[], audio: [] as string[] }] });
   let onReply: ((reply: VoxtaTurn) => void) | null = null;
   let onFail: ((e: Error) => void) | null = null;
 
@@ -96,15 +99,14 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
         break;
       case 'replyChunk':
         current ??= empty();
-        if (typeof msg.text === 'string') current.text.push(msg.text);
+        if (typeof msg.text === 'string') current.parts.at(-1)!.text.push(msg.text);
         // Voxta sends a "silence:" placeholder when the character has no voice; there is nothing to play.
-        if (typeof msg.audioUrl === 'string' && msg.audioUrl && !msg.audioUrl.startsWith('silence:')) current.audio.push(msg.audioUrl);
+        if (typeof msg.audioUrl === 'string' && msg.audioUrl && !msg.audioUrl.startsWith('silence:')) current.parts.at(-1)!.audio.push(msg.audioUrl);
         break;
       case 'toolCallRequest': {
         current ??= empty();
-        // Voxta asks the model again after tool results, so a line spoken before the calls is usually
-        // said again after them; keep only the last one.
-        current.text = [];
+        // Voxta asks the model again after tool results, so words after the calls start a new part.
+        if (current.parts.at(-1)!.text.length) current.parts.push({ text: [], audio: [] });
         // Arguments come as a JSON string (or, from backends without native tool calling, possibly odd shapes).
         let args: Record<string, unknown> = {};
         try {
@@ -120,7 +122,8 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
         const done = current ?? empty();
         current = null;
         askedAt = null;
-        const reply: VoxtaTurn = { messageId: String(msg.messageId ?? ''), text: done.text.join(' ').trim(), audioUrls: done.audio, calls: done.calls };
+        const said = [...done.parts].reverse().find((p) => p.text.join('').trim()) ?? { text: [], audio: [] };
+        const reply: VoxtaTurn = { messageId: String(msg.messageId ?? ''), text: said.text.join(' ').trim(), audioUrls: said.audio, calls: done.calls };
         // Voxta holds the chat until the client says this reply's speech has played.
         void playback(reply).catch(() => {}).finally(() => send({ $type: 'speechPlaybackComplete', sessionId, messageId: reply.messageId }));
         onReply?.(reply);

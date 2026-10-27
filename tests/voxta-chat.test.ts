@@ -6,7 +6,7 @@ const RS = '\x1e';
 type Msg = { $type: string; [k: string]: unknown };
 
 /** A fake Voxta hub: answers the handshake and messages the way the spike saw the real server do. */
-function fakeVoxta(script: { greeting?: boolean; reply?: 'normal' | 'silent' | 'error' | 'close'; interrupted?: Msg; noChat?: boolean } = {}) {
+function fakeVoxta(script: { greeting?: boolean; reply?: 'normal' | 'before' | 'silent' | 'error' | 'close'; interrupted?: Msg; noChat?: boolean } = {}) {
   const sent: Msg[] = [];
   let url = '';
   const listeners: Record<string, ((e: { data?: unknown; code?: number }) => void)[]> = {};
@@ -35,8 +35,13 @@ function fakeVoxta(script: { greeting?: boolean; reply?: 'normal' | 'silent' | '
         if (script.reply === 'silent') return;
         if (script.reply === 'error') { push({ $type: 'chatSessionError', message: 'model unavailable' }); return; }
         if (script.reply === 'close') { emit('close', { code: 1006 }); return; }
+        if (script.reply === 'before') {
+          push({ $type: 'replyStart', messageId: 'r2' }, { $type: 'replyChunk', messageId: 'r2', text: 'Only before.', audioUrl: '/api/tts/b.mp3' },
+            { $type: 'toolCallRequest', requestId: 'q3', name: 'expand', arguments: '{}' }, { $type: 'replyEnd', messageId: 'r2' });
+          return;
+        }
         reply('r1', 'Your center is mine.', [
-          { $type: 'replyChunk', messageId: 'r1', text: 'Said before the calls.', audioUrl: 'silence:1' },
+          { $type: 'replyChunk', messageId: 'r1', text: 'Center is mine, said before the calls.', audioUrl: '/api/tts/pre.mp3' },
           { $type: 'toolCallRequest', requestId: 'q1', name: 'attack_sector', arguments: '{"sector":"C"}' },
           { $type: 'replyToolCall', toolCallId: 't1', name: 'attack_sector' },
           { $type: 'toolCallRequest', requestId: 'q2', name: 'set_army_mix', arguments: 'not json' },
@@ -78,6 +83,13 @@ describe('Voxta chat client', () => {
     expect(played).toEqual(['g1', 'r1']);
     expect(v.sent.filter((m) => m.$type === 'speechPlaybackComplete').map((m) => m.messageId)).toEqual(['g1', 'r1']);
     expect(v.sent.find((m) => m.$type === 'send')).toMatchObject({ sessionId: 's1', text: 'GAME TURN 1', doReply: true, doUserActionInference: false, doCharacterActionInference: false });
+    chat.close();
+  });
+
+  it('a line spoken only before the tool calls is kept, with its audio', async () => {
+    const chat = createVoxtaChat({ apiKey: 'k', socket: fakeVoxta({ reply: 'before' }).factory, greetingWaitMs: 50 });
+    await chat.start({ characterId: 'c1', tools, context: '' });
+    expect(await chat.turn('GAME TURN')).toMatchObject({ text: 'Only before.', audioUrls: ['/api/tts/b.mp3'], calls: [{ name: 'expand' }] });
     chat.close();
   });
 
