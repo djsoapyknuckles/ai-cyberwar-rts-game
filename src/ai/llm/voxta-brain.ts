@@ -61,10 +61,16 @@ export function createVoxtaBrain(opts: VoxtaBrainOptions): Brain & { close(): vo
   let started: Promise<void> | null = null;
   let busy = false;
   const brain = async ({ digest, youSaid }: Parameters<Brain>[0]): Promise<string | null> => {
-    // One turn at a time: a turn asked while one is out (or still finishing after a timeout) counts as late.
-    if (busy || opts.chat.busy) return null;
+    // One turn at a time: a turn asked while one is out counts as late.
+    if (busy) return null;
     busy = true;
     try {
+      // A reply that timed out takes a moment to be stopped; wait for that rather than give up the turn,
+      // or a headless match would race through every late turn in an instant. The wait counts as latency.
+      const budget = opts.timeoutMs ?? VOXTA_TURN_MS;
+      const asked = Date.now();
+      while (opts.chat.busy && Date.now() - asked < budget) await new Promise((r) => setTimeout(r, 100));
+      if (opts.chat.busy) return null;
       started ??= opts.chat.start({ characterId: opts.characterId, tools: voxtaTools(opts.faction), context: systemPrompt(opts.faction, 'tools') })
         // A chat that failed to start is tried again next turn; this turn falls back.
         .catch((e: unknown) => { started = null; throw e; });

@@ -80,9 +80,18 @@ describe('Voxta character brain', () => {
     expect(f.closed()).toBe(true);
   });
 
-  it('a turn asked while the chat is still finishing a timed-out reply is late, and sends nothing', async () => {
+  it('waits for a timed-out reply to be stopped before sending the next turn', async () => {
+    const f = fakeChat([reply([], 'Again.')]);
+    let busy = true;
+    setTimeout(() => { busy = false; }, 150);
+    const brain = createVoxtaBrain({ chat: { ...f.chat, get busy() { return busy; } }, characterId: 'c1', faction: 'ai' });
+    expect(await brain({ tick: 0, digest })).toContain('Again.');
+    expect(f.sent).toHaveLength(1);
+  });
+
+  it('a chat still busy after the whole turn budget makes the turn late, and sends nothing', async () => {
     const f = fakeChat([reply([])]);
-    const brain = createVoxtaBrain({ chat: { ...f.chat, busy: true }, characterId: 'c1', faction: 'ai' });
+    const brain = createVoxtaBrain({ chat: { ...f.chat, busy: true }, characterId: 'c1', faction: 'ai', timeoutMs: 150 });
     expect(await brain({ tick: 0, digest })).toBeNull();
     expect(f.sent).toHaveLength(0);
   });
