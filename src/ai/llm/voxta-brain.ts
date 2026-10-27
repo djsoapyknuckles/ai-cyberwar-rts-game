@@ -46,6 +46,14 @@ export const VOXTA_TURN_MS = 18_000;
 /** The same budget in ticks, for the General's `timeout`. */
 export const VOXTA_TURN_TIMEOUT = (VOXTA_TURN_MS / 1000) * TICK_RATE;
 
+/** The game's own character (`assets/voxta/`). */
+export const THE_MODEL = 'The Model';
+
+/** The character named `name` (any case), or null when the player hasn't imported it. */
+export function findCharacter<C extends { name: string }>(list: C[], name = THE_MODEL): C | null {
+  return list.find((c) => c.name.trim().toLowerCase() === name.toLowerCase()) ?? null;
+}
+
 export interface VoxtaBrainOptions {
   chat: VoxtaChat;
   characterId: string;

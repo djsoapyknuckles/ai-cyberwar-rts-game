@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createVoxtaBrain, turnFromReply, voxtaTools } from '../src/ai/llm/voxta-brain.ts';
+import { createVoxtaBrain, findCharacter, turnFromReply, voxtaTools } from '../src/ai/llm/voxta-brain.ts';
 import { MAX_ORDERS_PER_TURN, parseTurn } from '../src/ai/llm/tools.ts';
 import { systemPrompt } from '../src/ai/llm/prompt.ts';
 import type { VoxtaChat, VoxtaTurn } from '../src/ai/llm/voxta-chat.ts';
@@ -113,6 +113,13 @@ describe('Voxta character brain', () => {
     expect(await brain({ tick: 1, digest })).toBeNull();
     await first;
     await expect(Promise.resolve(brain({ tick: 2, digest }))).rejects.toThrow('no reply in time');
+  });
+});
+
+describe('finding The Model', () => {
+  it('matches the name in any case and ignores other characters; null when not imported', () => {
+    expect(findCharacter([{ id: 'a', name: 'Catherine' }, { id: 'b', name: 'the model ' }])).toEqual({ id: 'b', name: 'the model ' });
+    expect(findCharacter([{ id: 'a', name: 'Catherine' }])).toBeNull();
   });
 });
 

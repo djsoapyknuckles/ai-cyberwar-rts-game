@@ -70,7 +70,7 @@ export function systemPrompt(faction: Faction, mode: 'json' | 'tools' = 'json'):
       '',
       `Reply with JSON only: {"orders": [{"tool": "<name>", "args": {...}}]}, at most ${MAX_ORDERS_PER_TURN} orders. Use "wait" to change nothing.`,
     ] : [
-      '- Talk: every turn, say one short line in character, spoken aloud to your opponent, to needle or bluff them. No links.',
+      '- Talk: every turn, say one short line in character, spoken aloud to your opponent, to needle or bluff them. Say it once, after your tool calls. No links.',
       '- Never repeat or closely reword anything in "you_said": every line should be new and fit what is happening now.',
       '',
       `Give orders only by calling your tools, at most ${MAX_ORDERS_PER_TURN} calls a turn; every turn, call at least one tool unless your current orders are still right. `

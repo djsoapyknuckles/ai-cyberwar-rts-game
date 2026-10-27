@@ -14,10 +14,13 @@ import '@fontsource/chakra-petch/latin-700.css';
 import './ui.css';
 import { createLlmBrain, createOllamaClient, listOllamaModels, type LlmClient } from './ai/llm/client.ts';
 import { filterChat } from './ai/llm/filter.ts';
-import { createGeneral } from './ai/llm/general.ts';
+import { createGeneral, type Brain } from './ai/llm/general.ts';
 import { forgetKey, loadKey, saveKey, type KeyStorage } from './ai/llm/keystore.ts';
 import { createOpenAiClient } from './ai/llm/openai.ts';
 import { createVoxtaClient, detectVoxta, VOXTA_MODEL, voxtaPort } from './ai/llm/voxta.ts';
+import { createVoxtaBrain, findCharacter, THE_MODEL, VOXTA_TURN_TIMEOUT } from './ai/llm/voxta-brain.ts';
+import { createVoxtaChat } from './ai/llm/voxta-chat.ts';
+import { createVoice } from './render/voice.ts';
 import { promptForKey } from './render/keyprompt.ts';
 import { createScriptedBot, OPPONENTS, STRATEGIES, TRAINING } from './ai/scripted.ts';
 import { createChatPanel } from './render/chat.ts';
@@ -77,7 +80,7 @@ if (setupDone) {
     model: s.localModel ?? 'qwen3:8b',
   }, Object.values(MAPS).map((m) => ({ id: m.id, name: m.name })),
   ['training', ...Object.keys(OPPONENTS).filter((o) => o !== 'training'), 'llm', ...(localModels ? ['llm-local', 'blind'] : []),
-    ...(voxtaFound ? ['llm-voxta'] : [])], touchUi, localModels);
+    ...(voxtaFound ? ['llm-voxta', 'llm-voxta-voice'] : [])], touchUi, localModels);
   voxtaSeen = voxtaFound;
   saveSettings({ ...s, ...choice, localModel });
 }
@@ -88,8 +91,9 @@ const fromSaved = !params.get('ai') && !resume;
 const savedLlm = fromSaved && saved.ai === 'llm';
 const savedLocal = fromSaved && (saved.ai === 'llm-local' || saved.ai === 'blind');
 const savedVoxta = fromSaved && saved.ai === 'llm-voxta';
+const savedVoice = fromSaved && saved.ai === 'llm-voxta-voice';
 const aiParam = resume?.ai ?? params.get('ai')
-  ?? (savedLlm || savedVoxta || (savedLocal && saved.ai === 'llm-local') ? 'llm' : savedLocal ? 'blind' : saved.ai && OPPONENTS[saved.ai] ? saved.ai : 'training');
+  ?? (savedLlm || savedVoxta || savedVoice || (savedLocal && saved.ai === 'llm-local') ? 'llm' : savedLocal ? 'blind' : saved.ai && OPPONENTS[saved.ai] ? saved.ai : 'training');
 // Quick match (mobile port): a richer start and faster claiming, for short sessions on a phone.
 const quick = resume ? resume.quick : params.has('quick') || !!saved.quick;
 if (quick) {
@@ -115,9 +119,11 @@ const seed = resume?.seed ?? Number(params.get('seed') ?? Date.now() % 100000);
 const humanBot = STRATEGIES[params.get('human') ?? ''];
 // Model names use only these characters; anything else is dropped (the name is shown in HTML).
 // Which service runs the General: Voxta (D-022), the OpenAI API (D-020), or Ollama on this machine.
+// A Voxta character (D-023) is its own kind of General: it speaks, and it isn't an LlmClient.
+const voiced = params.get('provider') === 'voxta-chat' || (savedVoice && !params.get('provider'));
 const viaVoxta = params.get('provider') === 'voxta' || (savedVoxta && !params.get('provider'));
-const cloud = !viaVoxta && (params.get('provider') === 'openai' || savedLlm);
-let model = (viaVoxta ? VOXTA_MODEL : params.get('model') ?? (savedLocal ? saved.localModel ?? 'qwen3:8b' : cloud ? '' : 'qwen3:8b')).replace(/[^\w.:/-]/g, '');
+const cloud = !viaVoxta && !voiced && (params.get('provider') === 'openai' || savedLlm);
+let model = (voiced ? 'voxta-chat' : viaVoxta ? VOXTA_MODEL : params.get('model') ?? (savedLocal ? saved.localModel ?? 'qwen3:8b' : cloud ? '' : 'qwen3:8b')).replace(/[^\w.:/-]/g, '');
 const ollama = params.get('ollama');
 let client: LlmClient | null = null;
 // D-020: the player's own key, entered when needed, kept for the session (or on this device if they ask).
@@ -125,7 +131,37 @@ const keyStore = (s: () => Storage): KeyStorage => ({
   getItem: (k) => s().getItem(k), setItem: (k, v) => s().setItem(k, v), removeItem: (k) => s().removeItem(k),
 });
 const [keySession, keyLocal] = [keyStore(() => sessionStorage), keyStore(() => localStorage)];
-if (useLlm && viaVoxta) {
+/** The character General's brain, its name, and a note for the player once the HUD exists. */
+let voxtaBrain: Brain | null = null;
+let character: string | undefined;
+let voxtaNote = '';
+/** Late-bound: the sound toggle is made after the General. */
+let voiceMuted = () => false;
+if (useLlm && voiced) {
+  // A Voxta with a login asks for the player's key (chat scope); one without needs none.
+  const port = voxtaPort(params.get('voxtaPort'));
+  if (params.has('newkey')) forgetKey(keySession, keyLocal, 'voxta');
+  let apiKey = loadKey(keySession, keyLocal, 'voxta');
+  if (!apiKey && (voxtaSeen === undefined ? await detectVoxta({ port }) : voxtaSeen) === 'needs-key') {
+    const answer = await promptForKey(model, true, { kind: 'voxta', port, scope: 'chat' });
+    if (answer?.key) { saveKey(answer.key, answer.remember, keySession, keyLocal, 'voxta'); apiKey = answer.key; }
+  }
+  const voice = createVoice({ base: `http://localhost:${port}`, muted: () => voiceMuted() });
+  const chat = createVoxtaChat({ apiKey: apiKey ?? '', port, playback: voice, startTimeoutMs: 8000 });
+  try {
+    const found = findCharacter(await chat.characters());
+    if (found) {
+      character = found.name;
+      voxtaBrain = createVoxtaBrain({ chat, characterId: found.id, faction: 'ai' });
+    } else {
+      chat.close();
+      voxtaNote = `${THE_MODEL} isn't in your Voxta yet: import it from assets/voxta (see its README). Playing the scripted AI.`;
+    }
+  } catch (e) {
+    chat.close();
+    voxtaNote = `Voxta General offline (${(e as Error).message}): playing the scripted AI.`;
+  }
+} else if (useLlm && viaVoxta) {
   // A Voxta that lets local apps in needs no key; one that answers 401 gets the player's key (inference scope).
   const port = voxtaPort(params.get('voxtaPort'));
   if (params.has('newkey')) forgetKey(keySession, keyLocal, 'voxta');
@@ -151,12 +187,14 @@ if (useLlm && viaVoxta) {
 } else if (useLlm) {
   client = createOllamaClient({ model, think: false, ...(ollama ? { url: ollama } : {}) });
 }
-const general = client ? createGeneral('ai', createLlmBrain(client, 'ai'), strategy, { seed }) : null;
-const aiName = blind ? 'AI (blind test)' : general ? `The Model (${viaVoxta ? 'Voxta' : model})` : `AI (${strategy.name}) · ${level.label}`;
+const general = client ? createGeneral('ai', createLlmBrain(client, 'ai'), strategy, { seed })
+  : voxtaBrain ? createGeneral('ai', voxtaBrain, strategy, { seed, timeout: VOXTA_TURN_TIMEOUT }) : null;
+const aiName = blind ? 'AI (blind test)' : general ? `The Model (${voiced ? 'Voxta voice' : viaVoxta ? 'Voxta' : model})` : `AI (${strategy.name}) · ${level.label}`;
 // Who played the AI side, saved with the replay; a blind test also records the player's guess.
 const opponent: OpponentInfo = {
   kind: general ? 'llm' : 'scripted', strategy: baseStrategy.name, difficulty: difficultyId, blind,
-  ...(general ? { model, provider: viaVoxta ? 'voxta' as const : cloud ? 'openai' as const : 'ollama' as const } : {}),
+  ...(general ? { model, provider: viaVoxta || voiced ? 'voxta' as const : cloud ? 'openai' as const : 'ollama' as const } : {}),
+  ...(character ? { character } : {}),
 };
 const tallyStore: TallyStorage = { getItem: (k) => localStorage.getItem(k), setItem: (k, v) => localStorage.setItem(k, v) };
 // ?map=duel|long picks the map (#5); unknown ids fall back to Duel.
@@ -214,6 +252,9 @@ if (waitingForStart) hud.showStart(() => { paused = false; waitingForStart = fal
 hud.onAlert((text) => { const cue = cueFor(text); if (cue) sound.play(cue, performance.now()); });
 const toggleSound = () => { const on = sound.toggleMute(); hud.message(on ? '🔔 Alert sounds on' : '🔕 Alert sounds off'); return on; };
 hud.setSoundToggle(!sound.muted, toggleSound);
+// The Voxta General's voice follows the sound toggle; muted, its speech is reported played at once.
+voiceMuted = () => sound.muted;
+if (voxtaNote) hud.message(voxtaNote);
 const SPEEDS = [0.5, 1, 2, 4];
 let speed = 1;
 

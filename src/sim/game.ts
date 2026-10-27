@@ -39,6 +39,8 @@ export interface OpponentInfo {
   strategy: string;
   model?: string;
   provider?: 'ollama' | 'openai' | 'voxta';
+  /** A Voxta character playing the General (D-023), e.g. "The Model". */
+  character?: string;
   difficulty: string;
   /** A blind test, and the player's guess if they made one before the reveal. */
   blind: boolean;

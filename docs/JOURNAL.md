@@ -2,6 +2,12 @@
 
 The story of building this game, newest first. Wins, failures, surprises, and what the agents did well or badly. Anyone can add an entry.
 
+## 2026-10-27 — The Model speaks
+
+- M2.7 is done: pick "AI General (Voxta voice)" and the game's own Voxta character commands the AI and taunts you out loud. The owner heard it in a real browser; headless tests can't.
+- The first listen found every taunt said twice. The character often speaks, calls its tools, then speaks again after Voxta hands back the results, usually saying the same thing. The chat panel already kept only the second part, but every clip played. Now a reply is split at its tool calls, and the last spoken part gives both the text and the voice.
+- A fresh Voxta install needed no key at all: the chat hub lets local apps in when Voxta has no login. Keys are only for a Voxta with a login.
+
 ## 2026-10-26 — The Model takes command
 
 - A Voxta character now plays the General (#58): the game's tools are declared to the character, each turn's digest goes in as a message, and its tool calls and spoken line come back as an ordinary turn. Against the attack-every-turn control on 10 seeds, "The Model" won 70%, the same as the control's own baseline: no edge, but no invalid orders in 650 and a new line every turn. Fun mode (D-023) has no bar to clear; qwen3:8b through the plain endpoint still plays better (+37).
