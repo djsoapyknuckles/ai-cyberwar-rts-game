@@ -18,6 +18,7 @@ export interface VoxtaToolArgument { name: string; type: 'String' | 'Integer' | 
 export interface VoxtaTool { name: string; description: string; arguments: VoxtaToolArgument[] }
 
 export interface VoxtaToolCall { name: string; args: Record<string, unknown> }
+/** `text` is the line spoken after the last tool call (all of it if the reply called none). */
 export interface VoxtaReply { messageId: string; text: string; audioUrls: string[] }
 export interface VoxtaTurn extends VoxtaReply { calls: VoxtaToolCall[] }
 
@@ -30,6 +31,8 @@ export interface VoxtaChatOptions {
   playback?: (reply: VoxtaReply) => Promise<void>;
   /** How long to wait for a greeting after the chat starts; characters without one never send it. */
   greetingWaitMs?: number;
+  /** How long connecting and starting a chat may take before `start` fails. Default 15 s. */
+  startTimeoutMs?: number;
 }
 
 export interface VoxtaChat {
@@ -38,11 +41,24 @@ export interface VoxtaChat {
   start(opts: { characterId: string; tools: VoxtaTool[]; context: string }): Promise<void>;
   /** Send one game turn and wait for the character's reply (tool calls, text, audio). */
   turn(text: string, timeoutMs?: number): Promise<VoxtaTurn>;
+  /**
+   * True while the character is still answering, even after `turn` gave up on it. Voxta merges a message
+   * sent mid-reply into the pending one and aborts the reply, so callers must not send until this clears.
+   */
+  readonly busy: boolean;
   close(): void;
 }
 
 const RS = '\x1e';
 type Msg = { $type: string; [k: string]: unknown };
+
+/** `p`, or a rejection with `message` after `ms`. */
+function within<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(message)), ms);
+    p.then((v) => { clearTimeout(t); resolve(v); }, (e: unknown) => { clearTimeout(t); reject(e); });
+  });
+}
 
 export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
   const url = `ws://localhost:${opts.port ?? VOXTA_DEFAULT_PORT}/hub?access_token=${encodeURIComponent(opts.apiKey)}`;
@@ -51,14 +67,19 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
   let ready: Promise<void> | null = null;
   let sessionId: string | null = null;
   let closed = false;
+  /** When the reply in progress was asked for (ms), or null; a reply silent this long is given up on. */
+  let askedAt: number | null = null;
+  const STUCK_MS = 30_000;
   /** Waiters for the next message of a type; a failure (error message or disconnect) rejects them all. */
   const waiters: { type: string; resolve: (m: Msg) => void; reject: (e: Error) => void }[] = [];
   /** Reply being collected; finished on replyEnd. */
   let current: { calls: VoxtaToolCall[]; text: string[]; audio: string[] } | null = null;
+  const empty = () => ({ calls: [], text: [], audio: [] });
   let onReply: ((reply: VoxtaTurn) => void) | null = null;
   let onFail: ((e: Error) => void) | null = null;
 
   const fail = (e: Error) => {
+    askedAt = null;
     for (const w of waiters.splice(0)) w.reject(e);
     onFail?.(e);
   };
@@ -70,16 +91,19 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
     if (i >= 0) waiters.splice(i, 1)[0]!.resolve(msg);
     switch (msg.$type) {
       case 'replyStart':
-        current = { calls: [], text: [], audio: [] };
+        current = empty();
         break;
       case 'replyChunk':
-        current ??= { calls: [], text: [], audio: [] };
+        current ??= empty();
         if (typeof msg.text === 'string') current.text.push(msg.text);
         // Voxta sends a "silence:" placeholder when the character has no voice; there is nothing to play.
         if (typeof msg.audioUrl === 'string' && msg.audioUrl && !msg.audioUrl.startsWith('silence:')) current.audio.push(msg.audioUrl);
         break;
       case 'toolCallRequest': {
-        current ??= { calls: [], text: [], audio: [] };
+        current ??= empty();
+        // Voxta asks the model again after tool results, so a line spoken before the calls is usually
+        // said again after them; keep only the last one.
+        current.text = [];
         // Arguments come as a JSON string (or, from backends without native tool calling, possibly odd shapes).
         let args: Record<string, unknown> = {};
         try {
@@ -92,14 +116,24 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
         break;
       }
       case 'replyEnd': {
-        const done = current ?? { calls: [], text: [], audio: [] };
+        const done = current ?? empty();
         current = null;
+        askedAt = null;
         const reply: VoxtaTurn = { messageId: String(msg.messageId ?? ''), text: done.text.join(' ').trim(), audioUrls: done.audio, calls: done.calls };
         // Voxta holds the chat until the client says this reply's speech has played.
         void playback(reply).catch(() => {}).finally(() => send({ $type: 'speechPlaybackComplete', sessionId, messageId: reply.messageId }));
         onReply?.(reply);
         break;
       }
+      case 'replyCancelled':
+        current = null;
+        askedAt = null;
+        break;
+      case 'chatFlow':
+        // An interrupted reply may end with no replyCancelled; the chat waiting for input again says it's over.
+        // Only trusted after a timeout: while a turn waits, this state can still show before the reply starts.
+        if (msg.state === 'WaitingForUserInput' && !onReply) { current = null; askedAt = null; }
+        break;
       case 'error': case 'chatSessionError': case 'missingResourcesError':
         fail(new Error(`voxta ${msg.$type}: ${String(msg.message ?? msg.details ?? '').slice(0, 200)}`));
         break;
@@ -115,6 +149,8 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
       s.addEventListener('close', (e) => {
         const err = new Error(`voxta: connection closed${e.code ? ` (${e.code})` : ''}. Check Voxta is running and the key has the chat scope.`);
         reject(err);
+        // Connect afresh next time; the old chat is gone with the connection.
+        if (socket === s) { socket = null; ready = null; sessionId = null; }
         if (!closed) fail(err);
       });
       s.addEventListener('message', (e) => {
@@ -149,14 +185,16 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
     },
 
     async start({ characterId, tools, context }) {
-      await connect();
+      const limit = opts.startTimeoutMs ?? 15_000;
+      // A hub that never answers would otherwise leave the caller waiting for the whole match.
+      await within(connect(), limit, 'voxta: no answer from the hub in time');
       const started = next('chatStarted');
       send({
         $type: 'startChat', characterId, ephemeral: true,
         tools: tools.map((t) => ({ ...t, permission: 'InChat', display: 'Hidden', timeoutSeconds: 30 })),
         contexts: [{ name: 'ai-cyberwar-rules', text: context }],
       });
-      sessionId = String((await started).sessionId);
+      sessionId = String((await within(started, limit, 'voxta: the chat did not start in time')).sessionId);
       // Let the character's greeting (if any) finish and be reported played before the first turn.
       await new Promise<void>((resolve) => {
         const t = setTimeout(() => { onReply = null; resolve(); }, opts.greetingWaitMs ?? 3000);
@@ -166,12 +204,24 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
 
     turn(text, timeoutMs = 10_000) {
       if (!sessionId) return Promise.reject(new Error('voxta: no chat started'));
+      if (this.busy) return Promise.reject(new Error('voxta: still answering the last turn'));
+      askedAt = Date.now();
       return new Promise<VoxtaTurn>((resolve, reject) => {
-        const t = setTimeout(() => { onReply = null; onFail = null; reject(new Error('voxta: no reply in time')); }, timeoutMs);
+        const t = setTimeout(() => {
+          onReply = null; onFail = null;
+          // Stop the reply; the chat stays busy until Voxta confirms it ended.
+          send({ $type: 'interrupt', sessionId });
+          reject(new Error('voxta: no reply in time'));
+        }, timeoutMs);
         onReply = (reply) => { clearTimeout(t); onReply = null; onFail = null; resolve(reply); };
         onFail = (e) => { clearTimeout(t); onReply = null; onFail = null; reject(e); };
-        send({ $type: 'send', sessionId, text, doReply: true, doCharacterActionInference: false });
+        // No action inference on either side: each would be an extra model call per turn, and orders come from tools.
+        send({ $type: 'send', sessionId, text, doReply: true, doUserActionInference: false, doCharacterActionInference: false });
       });
+    },
+
+    get busy() {
+      return askedAt !== null && Date.now() - askedAt < STUCK_MS;
     },
 
     close() {
