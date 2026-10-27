@@ -12,13 +12,13 @@
 You need Voxta Server running on the same machine as the game, and a Voxta Cloud account for the voice and the default model.
 
 1. **Import the character.** In Voxta, import `The Model.character.1.0.0.voxpak`.
-2. **Import the preset.** Under the Voxta Cloud service, open the Chat Replies presets and import `ai-cyberwar-preset.json`.
-3. **Make a configuration** that uses that preset for Chat Replies and has **Summarization off**. Summarization is a configuration switch, not part of the preset.
-4. **Point the character at it.** In The Model's settings, under Services, set **Force Configuration** to that configuration. Voxta doesn't carry this setting in a character export, so every player sets it once.
-5. **Make an API key** with the `chat` scope (add `inference` if you also use Voxta as a plain provider, D-022).
-6. **Allow the game's address.** Add it (for example `http://localhost:5173`) to Voxta's `Cors:AllowedOrigins`, then restart Voxta.
+2. **Import the preset.** Under the Voxta Cloud service, open the Chat Replies presets, import `ai-cyberwar-preset.json`, and make it the default.
+3. **Make an API key** with the `chat` scope (add `inference` if you also use Voxta as a plain provider, D-022).
+4. **Allow the game's address.** Add it (for example `http://localhost:5173`) to Voxta's `Cors:AllowedOrigins`, then restart Voxta.
 
-Steps 2–4 are what keep turns fast. Without them, the character still works but uses your default services: on Voxta Cloud's "Automatic" preset the model thinks before every turn, and turns take 5–15 s instead of about 3 s.
+Step 2 is what keeps turns fast. Without it, the character still works, but on Voxta Cloud's "Automatic" preset the model thinks before every turn, and turns take 5–15 s instead of about 3 s.
+
+**If you chat with other characters in the same Voxta**, keep your own default preset instead. Make a configuration that uses the game's preset for Chat Replies, with Summarization off. Then, in The Model's settings under Services, set **Force Configuration** to it. Voxta doesn't carry that setting in a character export, so it has to be set by hand.
 
 ## Try it headless
 
