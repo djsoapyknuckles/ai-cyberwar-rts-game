@@ -42,6 +42,7 @@ npm run llm-match -- --model qwen3:8b --human control --matches 30 --with-contro
 npm run llm-match -- --model qwen3:8b --matches 30 --with-control   # secondary: LLM General vs every scripted bot, plus the control on the same seeds
 npm run llm-match -- --control --matches 30                         # control only (attack every turn, no model)
 npm run llm-match -- --model qwen3:8b --matches 30 --out results.json  # also save matches, turn logs and summary as JSON (game + data version)
+npm run llm-match -- --provider voxta-chat --character "The Model" --human control --matches 10   # a Voxta character plays the General (D-023); key with chat scope from VOXTA_API_KEY
 npm run build
 npm run shot -- "http://localhost:5173/?seed=3&human=boom&ai=turtle&autostart" shot.png --wait 20   # headless screenshot after 20 s of play; prints chat + page errors, exits 1 on errors (BROWSER_PATH overrides)
 # Visual checks: with `npm run dev` running, open (or screenshot headless) e.g.
