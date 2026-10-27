@@ -31,6 +31,8 @@ export interface VoxtaChatOptions {
   playback?: (reply: VoxtaReply) => Promise<void>;
   /** How long to wait for a greeting after the chat starts; characters without one never send it. */
   greetingWaitMs?: number;
+  /** How long connecting and starting a chat may take before `start` fails. Default 15 s. */
+  startTimeoutMs?: number;
 }
 
 export interface VoxtaChat {
@@ -49,6 +51,14 @@ export interface VoxtaChat {
 
 const RS = '\x1e';
 type Msg = { $type: string; [k: string]: unknown };
+
+/** `p`, or a rejection with `message` after `ms`. */
+function within<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(message)), ms);
+    p.then((v) => { clearTimeout(t); resolve(v); }, (e: unknown) => { clearTimeout(t); reject(e); });
+  });
+}
 
 export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
   const url = `ws://localhost:${opts.port ?? VOXTA_DEFAULT_PORT}/hub?access_token=${encodeURIComponent(opts.apiKey)}`;
@@ -139,6 +149,8 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
       s.addEventListener('close', (e) => {
         const err = new Error(`voxta: connection closed${e.code ? ` (${e.code})` : ''}. Check Voxta is running and the key has the chat scope.`);
         reject(err);
+        // Connect afresh next time; the old chat is gone with the connection.
+        if (socket === s) { socket = null; ready = null; sessionId = null; }
         if (!closed) fail(err);
       });
       s.addEventListener('message', (e) => {
@@ -173,14 +185,16 @@ export function createVoxtaChat(opts: VoxtaChatOptions): VoxtaChat {
     },
 
     async start({ characterId, tools, context }) {
-      await connect();
+      const limit = opts.startTimeoutMs ?? 15_000;
+      // A hub that never answers would otherwise leave the caller waiting for the whole match.
+      await within(connect(), limit, 'voxta: no answer from the hub in time');
       const started = next('chatStarted');
       send({
         $type: 'startChat', characterId, ephemeral: true,
         tools: tools.map((t) => ({ ...t, permission: 'InChat', display: 'Hidden', timeoutSeconds: 30 })),
         contexts: [{ name: 'ai-cyberwar-rules', text: context }],
       });
-      sessionId = String((await started).sessionId);
+      sessionId = String((await within(started, limit, 'voxta: the chat did not start in time')).sessionId);
       // Let the character's greeting (if any) finish and be reported played before the first turn.
       await new Promise<void>((resolve) => {
         const t = setTimeout(() => { onReply = null; resolve(); }, opts.greetingWaitMs ?? 3000);

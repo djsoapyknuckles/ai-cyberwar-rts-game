@@ -6,7 +6,7 @@ const RS = '\x1e';
 type Msg = { $type: string; [k: string]: unknown };
 
 /** A fake Voxta hub: answers the handshake and messages the way the spike saw the real server do. */
-function fakeVoxta(script: { greeting?: boolean; reply?: 'normal' | 'silent' | 'error' | 'close'; interrupted?: Msg } = {}) {
+function fakeVoxta(script: { greeting?: boolean; reply?: 'normal' | 'silent' | 'error' | 'close'; interrupted?: Msg; noChat?: boolean } = {}) {
   const sent: Msg[] = [];
   let url = '';
   const listeners: Record<string, ((e: { data?: unknown; code?: number }) => void)[]> = {};
@@ -26,7 +26,7 @@ function fakeVoxta(script: { greeting?: boolean; reply?: 'normal' | 'silent' | '
       sent.push(msg);
       if (msg.$type === 'authenticate') push({ $type: 'welcome', user: { name: 'DJ' } });
       if (msg.$type === 'loadCharactersList') push({ $type: 'charactersListLoaded', characters: [{ id: 'c1', name: 'The Model' }, { id: 'c2', name: 'Other' }] });
-      if (msg.$type === 'startChat') {
+      if (msg.$type === 'startChat' && !script.noChat) {
         push({ $type: 'chatStarted', sessionId: 's1', chatStyle: 'Roleplay' });
         if (script.greeting !== false) reply('g1', 'So, a human wants to play.');
       }
@@ -113,6 +113,12 @@ describe('Voxta chat client', () => {
     expect(v.sent.at(-1)).toMatchObject({ $type: 'interrupt', sessionId: 's1' });
     await new Promise((r) => setTimeout(r, 10));
     expect(chat.busy).toBe(false);
+    chat.close();
+  });
+
+  it('fails a start the hub never answers, instead of waiting all match', async () => {
+    const chat = createVoxtaChat({ apiKey: 'k', socket: fakeVoxta({ noChat: true }).factory, startTimeoutMs: 50 });
+    await expect(chat.start({ characterId: 'c1', tools, context: '' })).rejects.toThrow('did not start in time');
     chat.close();
   });
 

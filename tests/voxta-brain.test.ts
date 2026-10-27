@@ -87,6 +87,16 @@ describe('Voxta character brain', () => {
     expect(f.sent).toHaveLength(0);
   });
 
+  it('a chat that failed to start is started again next turn', async () => {
+    const f = fakeChat([reply([], 'Back.')]);
+    let tries = 0;
+    const start: VoxtaChat['start'] = async (o) => { if (tries++ === 0) throw new Error('voxta: the chat did not start in time'); await f.chat.start(o); };
+    const brain = createVoxtaBrain({ chat: { ...f.chat, start }, characterId: 'c1', faction: 'ai' });
+    await expect(Promise.resolve(brain({ tick: 0, digest }))).rejects.toThrow('did not start');
+    expect(await brain({ tick: 1, digest })).toContain('Back.');
+    expect(f.starts).toHaveLength(1);
+  });
+
   it('a turn asked while one is out is late (null); a failed turn throws for the fallback', async () => {
     const f = fakeChat([reply([]), new Error('voxta: no reply in time')], 20);
     const brain = createVoxtaBrain({ chat: f.chat, characterId: 'c1', faction: 'ai' });

@@ -65,7 +65,9 @@ export function createVoxtaBrain(opts: VoxtaBrainOptions): Brain & { close(): vo
     if (busy || opts.chat.busy) return null;
     busy = true;
     try {
-      started ??= opts.chat.start({ characterId: opts.characterId, tools: voxtaTools(opts.faction), context: systemPrompt(opts.faction, 'tools') });
+      started ??= opts.chat.start({ characterId: opts.characterId, tools: voxtaTools(opts.faction), context: systemPrompt(opts.faction, 'tools') })
+        // A chat that failed to start is tried again next turn; this turn falls back.
+        .catch((e: unknown) => { started = null; throw e; });
       await started;
       const reply = await opts.chat.turn(`GAME TURN. ${userPrompt(digest, youSaid ?? [])}`, opts.timeoutMs ?? VOXTA_TURN_MS);
       opts.onReply?.(reply);
