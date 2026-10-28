@@ -9,6 +9,10 @@ export interface OpenAiOptions {
   apiKey: string;
   /** Default https://api.openai.com/v1. */
   baseUrl?: string;
+  /** Names the client in logs and results (`openrouter:<model>`). Default 'openai'. */
+  provider?: string;
+  /** Extra request headers (OpenRouter's attribution headers, D-025). */
+  headers?: Record<string, string>;
   /** Omitted unless set: some models only accept their default temperature. */
   temperature?: number;
   /** Reply length cap, sent as max_tokens. Omitted unless set: some OpenAI models reject max_tokens. */
@@ -24,14 +28,15 @@ export function createOpenAiClient(opts: OpenAiOptions): LlmClient {
   const base = (opts.baseUrl ?? 'https://api.openai.com/v1').replace(/\/$/, '');
   // Wrapped so the browser calls fetch with the right receiver.
   const doFetch = opts.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init));
+  const who = opts.provider ?? 'openai';
   return {
-    name: `openai:${opts.model}`,
+    name: `${who}:${opts.model}`,
     async complete(req, signal) {
       // In a browser, OpenAI's error replies (e.g. 401 for a wrong key) carry no CORS header, so they surface
       // as a bare network error. Say what to check instead of "Failed to fetch".
       const res = await doFetch(`${base}/chat/completions`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...(opts.apiKey ? { authorization: `Bearer ${opts.apiKey}` } : {}) },
+        headers: { ...opts.headers, 'content-type': 'application/json', ...(opts.apiKey ? { authorization: `Bearer ${opts.apiKey}` } : {}) },
         body: JSON.stringify({
           model: opts.model,
           messages: [{ role: 'system', content: req.system }, { role: 'user', content: req.user }],
@@ -44,12 +49,12 @@ export function createOpenAiClient(opts: OpenAiOptions): LlmClient {
         signal,
       }).catch((e: unknown) => {
         if (signal?.aborted) throw e;
-        throw new Error('openai: request failed (wrong API key or model, or no network). Reload with &newkey to enter the key again.');
+        throw new Error(`${who}: request failed (wrong API key or model, or no network). Reload with &newkey to enter the key again.`);
       });
-      if (!res.ok) throw new Error(redactKeys(`openai ${res.status}: ${(await res.text()).slice(0, 200)}`));
+      if (!res.ok) throw new Error(redactKeys(`${who} ${res.status}: ${(await res.text()).slice(0, 200)}`));
       const body = await res.json() as { choices?: { message?: { content?: unknown } }[] };
       const content = body.choices?.[0]?.message?.content;
-      if (typeof content !== 'string') throw new Error('openai: reply has no message content');
+      if (typeof content !== 'string') throw new Error(`${who}: reply has no message content`);
       return content;
     },
   };

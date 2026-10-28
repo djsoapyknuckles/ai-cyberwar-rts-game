@@ -4,7 +4,7 @@
 // Usage: npm run llm-turn -- --model qwen3:8b [--url http://localhost:11434] [--minutes 4] [--faction ai] [--seed 3] [--no-think] [--digest]
 import { parseArgs } from 'node:util';
 import { createLlmBrain } from '../src/ai/llm/client.ts';
-import { clientFromArgs } from './llm-provider.ts';
+import { clientFromArgs, LOCAL_MODEL } from './llm-provider.ts';
 import { planTurn } from '../src/ai/llm/plan.ts';
 import { systemPrompt } from '../src/ai/llm/prompt.ts';
 import { parseTurn } from '../src/ai/llm/tools.ts';
@@ -15,7 +15,7 @@ import { digestView, factionView, TICK_RATE, type Faction } from '../src/sim/ind
 const { values } = parseArgs({
   options: {
     provider: { type: 'string', default: 'ollama' },
-    model: { type: 'string', default: 'qwen3:8b' },
+    model: { type: 'string' },
     url: { type: 'string', default: process.env.OLLAMA_URL ?? 'http://localhost:11434' },
     minutes: { type: 'string', default: '4' },
     faction: { type: 'string', default: 'ai' },
@@ -48,7 +48,7 @@ try {
   reply = await brain({ tick: view.tick, digest });
 } catch (e) {
   console.error(`request failed: ${String(e)}`);
-  console.error(`Is Ollama running at ${values.url}? Try: ollama serve, then ollama pull ${values.model}`);
+  console.error(`Is Ollama running at ${values.url}? Try: ollama serve, then ollama pull ${values.model ?? LOCAL_MODEL}`);
   process.exit(1);
 }
 const ms = Math.round(performance.now() - start);

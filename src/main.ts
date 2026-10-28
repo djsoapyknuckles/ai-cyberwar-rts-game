@@ -1,8 +1,8 @@
 // Browser entry: human plays through the UI; the AI faction is a scripted bot or the LLM General.
 // URL options: ?ai=training|brutal|rush|boom|turtle&seed=123&stress=300 (stress spawns N fighting units to check frame rate)
 // LLM General: ?ai=llm&model=qwen3:8b[&base=boom][&ollama=http://localhost:11434] (needs `ollama serve`; if the
-// model is unreachable the General's base plays on as the scripted bot). Cloud (D-020): ?ai=llm&provider=openai
-// [&model=...] asks for the player's own OpenAI key once per session; &newkey forgets a saved key. Blind test (Gate 2): ?ai=blind picks
+// model is unreachable the General's base plays on as the scripted bot). Cloud (D-020, D-025): ?ai=llm&provider=openai|openrouter
+// [&model=...] asks for the player's own key for that provider once per session; &newkey forgets a saved key. Blind test (Gate 2): ?ai=blind picks
 // the LLM General or scripted boom at random, hides which and hides chat, and reveals it after the match.
 // &renderer=pixi|three|iso picks the view (M4.0 renderer spike, D-017); pixi (top-down 2D) is the default.
 // &map=duel|long picks the map (Duel is the default; Long Haul is longer, with two fiber routes).
@@ -17,6 +17,7 @@ import { filterChat } from './ai/llm/filter.ts';
 import { createGeneral, type Brain } from './ai/llm/general.ts';
 import { forgetKey, loadKey, saveKey, type KeyStorage } from './ai/llm/keystore.ts';
 import { createOpenAiClient } from './ai/llm/openai.ts';
+import { CLOUD_PROVIDERS, cloudProvider, promptModel } from './ai/llm/providers.ts';
 import { createVoxtaClient, detectVoxta, VOXTA_MODEL, voxtaPort } from './ai/llm/voxta.ts';
 import { createVoxtaBrain, findCharacter, THE_MODEL, VOXTA_TURN_TIMEOUT } from './ai/llm/voxta-brain.ts';
 import { createVoxtaChat } from './ai/llm/voxta-chat.ts';
@@ -78,6 +79,7 @@ if (setupDone) {
     renderer: s.renderer ?? 'pixi',
     quick: !!s.quick,
     model: s.localModel ?? 'qwen3:8b',
+    cloud: cloudProvider(s.cloud)?.id ?? 'openai',
   }, Object.values(MAPS).map((m) => ({ id: m.id, name: m.name })),
   ['training', ...Object.keys(OPPONENTS).filter((o) => o !== 'training'), 'llm', ...(localModels ? ['llm-local', 'blind'] : []),
     ...(voxtaFound ? ['llm-voxta', 'llm-voxta-voice'] : [])], touchUi, localModels);
@@ -122,7 +124,9 @@ const humanBot = STRATEGIES[params.get('human') ?? ''];
 // A Voxta character (D-023) is its own kind of General: it speaks, and it isn't an LlmClient.
 const voiced = params.get('provider') === 'voxta-chat' || (savedVoice && !params.get('provider'));
 const viaVoxta = params.get('provider') === 'voxta' || (savedVoxta && !params.get('provider'));
-const cloud = !viaVoxta && !voiced && (params.get('provider') === 'openai' || savedLlm);
+// D-025: only a provider on the fixed list; a link can name one, never an address.
+const cloudPick = cloudProvider(params.get('provider')) ?? (savedLlm && !params.get('provider') ? cloudProvider(saved.cloud) ?? CLOUD_PROVIDERS.openai : null);
+const cloud = !viaVoxta && !voiced && !!cloudPick;
 let model = (voiced ? 'voxta-chat' : viaVoxta ? VOXTA_MODEL : params.get('model') ?? (savedLocal ? saved.localModel ?? 'qwen3:8b' : cloud ? '' : 'qwen3:8b')).replace(/[^\w.:/-]/g, '');
 const ollama = params.get('ollama');
 let client: LlmClient | null = null;
@@ -172,18 +176,22 @@ if (useLlm && voiced) {
   }
   // Even when detection failed, try: the General's offline message then says what to check (CORS, key, server).
   client = createVoxtaClient({ apiKey: apiKey ?? '', port });
-} else if (useLlm && cloud) {
-  const [session, local] = [keySession, keyLocal];
-  if (params.has('newkey')) forgetKey(session, local);
-  let apiKey = loadKey(session, local);
+} else if (useLlm && cloud && cloudPick) {
+  // Each provider reads and writes only its own key slot, so a key never reaches another provider.
+  const [session, local, slot] = [keySession, keyLocal, cloudPick.slot];
+  if (params.has('newkey')) forgetKey(session, local, slot);
+  let apiKey = loadKey(session, local, slot);
+  // Ask unless the link names the model too: the prompt pre-fills the provider's default, which the player may change.
   if (!apiKey || !model) {
-    const answer = await promptForKey(model, !apiKey);
+    const answer = await promptForKey(promptModel(cloudPick, model), !apiKey, { kind: 'cloud', provider: cloudPick });
     if (answer) {
       model = answer.model;
-      if (!apiKey) { saveKey(answer.key, answer.remember, session, local); apiKey = answer.key; }
+      if (!apiKey) { saveKey(answer.key, answer.remember, session, local, slot); apiKey = answer.key; }
     }
   }
-  if (apiKey && model) client = createOpenAiClient({ model, apiKey });
+  if (apiKey && model) {
+    client = createOpenAiClient({ model, apiKey, baseUrl: cloudPick.baseUrl, headers: cloudPick.headers, provider: cloudPick.id });
+  }
 } else if (useLlm) {
   client = createOllamaClient({ model, think: false, ...(ollama ? { url: ollama } : {}) });
 }
@@ -193,7 +201,7 @@ const aiName = blind ? 'AI (blind test)' : general ? `The Model (${voiced ? 'Vox
 // Who played the AI side, saved with the replay; a blind test also records the player's guess.
 const opponent: OpponentInfo = {
   kind: general ? 'llm' : 'scripted', strategy: baseStrategy.name, difficulty: difficultyId, blind,
-  ...(general ? { model, provider: viaVoxta || voiced ? 'voxta' as const : cloud ? 'openai' as const : 'ollama' as const } : {}),
+  ...(general ? { model, provider: viaVoxta || voiced ? 'voxta' as const : cloudPick && cloud ? cloudPick.id : 'ollama' as const } : {}),
   ...(character ? { character } : {}),
 };
 const tallyStore: TallyStorage = { getItem: (k) => localStorage.getItem(k), setItem: (k, v) => localStorage.setItem(k, v) };
@@ -483,11 +491,12 @@ const mobileBar = touchUi ? createMobileBar(hudRoot, {
   current: {
     renderer: kind, map: mapId, ai: useLlm && cloud ? 'llm' : OPPONENTS[aiParam] ? aiParam : 'training', quick,
     vibrate: vibrateOn, battery: saved.battery ?? 'auto', difficulty: difficultyId, localModel: saved.localModel ?? 'qwen3:8b',
+    cloud: cloudPick?.id ?? cloudProvider(saved.cloud)?.id ?? 'openai',
   },
   maps: Object.values(MAPS).map((m) => ({ id: m.id, name: m.name })),
   opponents: [...Object.keys(OPPONENTS), 'llm'],
   onLiveChange: (next) => { vibrateOn = next.vibrate; void batterySaverActive(next.battery).then((on) => { saver = on; }); },
-  forgetKey: () => forgetKey(keySession, keyLocal),
+  forgetKey: () => { for (const p of Object.values(CLOUD_PROVIDERS)) forgetKey(keySession, keyLocal, p.slot); },
   onNewGame: () => { discardSave = true; try { localStorage.removeItem(SAVE_KEY); } catch { /* nothing saved */ } },
 }) : null;
 // Installed as an app (mobile port): cache the game for offline play. Production builds only.
