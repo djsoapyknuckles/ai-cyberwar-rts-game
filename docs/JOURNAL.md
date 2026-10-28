@@ -2,6 +2,14 @@
 
 The story of building this game, newest first. Wins, failures, surprises, and what the agents did well or badly. Anyone can add an entry.
 
+## 2026-10-27 — The first cloud General on OpenRouter
+
+- The cloud General can now run on OpenRouter as well as OpenAI (D-025), with `anthropic/claude-haiku-5.5` as the default. The owner put $5 of credit on OpenRouter and played one match. The taunts were "reasonable", it never showed "General offline", and it felt different from the scripted Boom bot: it pulled its army out of the center to catch a small group heading north.
+- The free models were no good for this. Gemma was rate-limited at the source, and Nemotron needed 42 s per turn, against a 10 s limit.
+- JSON mode alone wasn't enough. In the first headless match, 2 of 16 turns were unreadable: one was JSON wrapped in a markdown code block, the other used the model's own tool-call markup. Two fixes: read through the code block, and send OpenRouter the turn schema in strict mode. Over 5 matches: 0 invalid orders out of 595.
+- The cost estimate was too low. It assumed under 1 cent per match; the measured cost is about 1.5 cents, because the real prompt is longer than estimated. $5 still covers about 300 matches.
+- Replays now keep the General's turn log (#49), so the next match can be checked turn by turn.
+
 ## 2026-10-27 — The bots said unbalanced; the owner said beatable
 
 - Proposal 0003 had two stat fixes ready for #32, built on bot numbers: the AI wins the slow mirrors, and the human rush bot beats the AI turtle only 4% of the time. Before changing any numbers, the owner played on hard.
