@@ -13,6 +13,10 @@ export interface OpenAiOptions {
   provider?: string;
   /** Extra request headers (OpenRouter's attribution headers, D-025). */
   headers?: Record<string, string>;
+  /** Send the turn schema as strict structured output (`json_schema`) instead of JSON mode. */
+  jsonSchema?: boolean;
+  /** Extra request body fields, e.g. OpenRouter's routing options. Never replace the model or messages. */
+  body?: Record<string, unknown>;
   /** Omitted unless set: some models only accept their default temperature. */
   temperature?: number;
   /** Reply length cap, sent as max_tokens. Omitted unless set: some OpenAI models reject max_tokens. */
@@ -38,11 +42,14 @@ export function createOpenAiClient(opts: OpenAiOptions): LlmClient {
         method: 'POST',
         headers: { ...opts.headers, 'content-type': 'application/json', ...(opts.apiKey ? { authorization: `Bearer ${opts.apiKey}` } : {}) },
         body: JSON.stringify({
+          ...opts.body,
           model: opts.model,
           messages: [{ role: 'system', content: req.system }, { role: 'user', content: req.user }],
           // JSON mode is the widest-supported structured output across compatible providers; the turn
           // validator checks the shape (tools.ts), so a reply that drifts from the schema is caught there.
-          response_format: { type: 'json_object' },
+          response_format: opts.jsonSchema
+            ? { type: 'json_schema', json_schema: { name: 'turn', strict: true, schema: req.schema } }
+            : { type: 'json_object' },
           ...(opts.temperature === undefined ? {} : { temperature: opts.temperature }),
           ...(opts.maxTokens === undefined ? {} : { max_tokens: opts.maxTokens }),
         }),

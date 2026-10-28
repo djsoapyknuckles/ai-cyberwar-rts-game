@@ -32,7 +32,9 @@ export function clientFromArgs(v: { provider?: string; model?: string; url: stri
       console.error(`--provider openrouter needs ${p.envKey} in the environment (for example in a local .env, which git ignores).`);
       process.exit(2);
     }
-    return createOpenAiClient({ model: v.model ?? p.defaultModel, apiKey, baseUrl: p.baseUrl, headers: p.headers, provider: p.id });
+    return createOpenAiClient({
+      model: v.model ?? p.defaultModel, apiKey, baseUrl: p.baseUrl, headers: p.headers, provider: p.id, jsonSchema: p.jsonSchema, body: p.body,
+    });
   }
   return createOllamaClient({ model: v.model ?? LOCAL_MODEL, url: v.url, ...(v['no-think'] ? { think: false } : {}) });
 }
