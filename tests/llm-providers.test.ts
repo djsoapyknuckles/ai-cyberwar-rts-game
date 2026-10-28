@@ -72,3 +72,33 @@ describe('OpenRouter client', () => {
     expect(err).not.toContain(key);
   });
 });
+
+describe('structured output (OpenRouter)', () => {
+  const schema = { type: 'object', properties: { orders: { type: 'array' } } };
+  const bodies = (): { fetch: typeof fetch; seen: Record<string, unknown>[] } => {
+    const seen: Record<string, unknown>[] = [];
+    const f = (async (_url: string, init: RequestInit) => {
+      seen.push(JSON.parse(init.body as string) as Record<string, unknown>);
+      return new Response(JSON.stringify({ choices: [{ message: { content: '{}' } }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    return { fetch: f, seen };
+  };
+
+  it('sends the turn schema strictly and asks OpenRouter to route only to providers that honor it', async () => {
+    const p = CLOUD_PROVIDERS.openrouter;
+    const { fetch, seen } = bodies();
+    await createOpenAiClient({ model: 'm', apiKey: 'k', baseUrl: p.baseUrl, jsonSchema: p.jsonSchema, body: p.body, fetch })
+      .complete({ system: '', user: '', schema });
+    expect(seen[0]!.response_format).toEqual({ type: 'json_schema', json_schema: { name: 'turn', strict: true, schema } });
+    expect(seen[0]!.provider).toEqual({ require_parameters: true });
+  });
+
+  it('keeps plain JSON mode for OpenAI, and extra body fields never replace the model or messages', async () => {
+    const { fetch, seen } = bodies();
+    await createOpenAiClient({ model: 'mine', apiKey: 'k', jsonSchema: CLOUD_PROVIDERS.openai.jsonSchema, body: { model: 'other', messages: [] }, fetch })
+      .complete({ system: 's', user: 'u', schema });
+    expect(seen[0]!.response_format).toEqual({ type: 'json_object' });
+    expect(seen[0]!.model).toBe('mine');
+    expect(seen[0]!.messages).toHaveLength(2);
+  });
+});

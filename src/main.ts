@@ -190,7 +190,10 @@ if (useLlm && voiced) {
     }
   }
   if (apiKey && model) {
-    client = createOpenAiClient({ model, apiKey, baseUrl: cloudPick.baseUrl, headers: cloudPick.headers, provider: cloudPick.id });
+    client = createOpenAiClient({
+      model, apiKey, baseUrl: cloudPick.baseUrl, headers: cloudPick.headers, provider: cloudPick.id,
+      jsonSchema: cloudPick.jsonSchema, body: cloudPick.body,
+    });
   }
 } else if (useLlm) {
   client = createOllamaClient({ model, think: false, ...(ollama ? { url: ollama } : {}) });

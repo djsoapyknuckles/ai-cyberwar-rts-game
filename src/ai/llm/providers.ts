@@ -17,6 +17,10 @@ export interface CloudProvider {
   keyHint: string;
   /** Extra request headers. Attribution only: never player data. */
   headers: Record<string, string>;
+  /** Send the full turn schema (strict structured output) instead of plain JSON mode. */
+  jsonSchema: boolean;
+  /** Extra request body fields (routing options). */
+  body: Record<string, unknown>;
   /** Headless runs read the key from this environment variable. */
   envKey: string;
 }
@@ -25,6 +29,7 @@ export const CLOUD_PROVIDERS: Record<CloudProviderId, CloudProvider> = {
   openai: {
     id: 'openai', label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', slot: 'openai', defaultModel: '',
     keyUrl: 'https://platform.openai.com/api-keys', keyHint: 'sk-...', headers: {}, envKey: 'OPENAI_API_KEY',
+    jsonSchema: false, body: {},
   },
   // D-025: owner asked for "a decent but inexpensive model"; #29 can replace it once measured.
   openrouter: {
@@ -32,6 +37,9 @@ export const CLOUD_PROVIDERS: Record<CloudProviderId, CloudProvider> = {
     defaultModel: 'anthropic/claude-haiku-5.5', keyUrl: 'https://openrouter.ai/keys', keyHint: 'sk-or-...',
     headers: { 'HTTP-Referer': 'https://github.com/djsoapyknuckles/ai-cyberwar-rts-game', 'X-Title': 'AI Cyberwar RTS' },
     envKey: 'OPENROUTER_API_KEY',
+    // JSON mode alone let claude-haiku-5.5 drift into its own tool-call markup; the strict schema stops that, and
+    // require_parameters keeps OpenRouter off routes that would ignore it (checked 2026-10-27: 200 OK, ~3 s).
+    jsonSchema: true, body: { provider: { require_parameters: true } },
   },
 };
 
