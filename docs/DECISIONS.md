@@ -2,6 +2,17 @@
 
 Newest first. Each entry: date, decision, options considered, reason. Changes to design pillars need owner approval.
 
+## D-025 — 2026-10-27 — Cloud General: a fixed list of providers, OpenRouter first (amends D-020)
+- **Decision** (owner's answers to proposal 0005):
+  - The browser's cloud General offers a **fixed list of providers built into the game**: OpenAI and OpenRouter to start. Each provider has a fixed address, its own key slot and a default model. A link can name a provider from the list (`?ai=llm&provider=openrouter`) but never an address, so D-020's rule holds: a key goes only to the address of the provider it was entered for.
+  - **OpenRouter's default model: `anthropic/claude-haiku-5.5`.** The owner asked for "a decent but inexpensive model". It costs $0.10 / $0.50 per million input/output tokens, and every one of its OpenRouter routes supports `response_format`. Estimated cost: under 1 cent per 10-minute match. Not yet measured against the Gate 2 bar; #29 can replace it.
+  - The game sends OpenRouter the attribution headers `HTTP-Referer` and `X-Title: AI Cyberwar RTS`. They carry no player data.
+  - Headless: `--provider openrouter` reads `OPENROUTER_API_KEY`.
+- **Checked 2026-10-27:** OpenRouter answers browser preflights with `Access-Control-Allow-Origin: *`, and its error replies carry the CORS header too.
+- **Options considered:** fixed provider list (chosen); a free-form address typed into the key prompt; OpenAI only.
+- **Later, separate decision:** "Log in with OpenRouter" (OAuth with PKCE), so players don't paste a key.
+- **Approved:** owner, 2026-10-27.
+
 ## D-024 — 2026-10-27 — Faction balance: no stat change (proposal 0003, #32)
 - **Decision:** keep the faction stats as they are. Proposal 0003's Variant A (human units train 5% faster) and Variant B (A plus softer Adaptation and tougher Maintenance Drones) are both rejected.
 - **Evidence (owner playtests, `difficulty=hard`, `DATA_VERSION` 11):**
