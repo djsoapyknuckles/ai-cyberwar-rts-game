@@ -2,6 +2,16 @@
 
 Newest first. Each entry: date, decision, options considered, reason. Changes to design pillars need owner approval.
 
+## D-024 — 2026-10-27 — Faction balance: no stat change (proposal 0003, #32)
+- **Decision:** keep the faction stats as they are. Proposal 0003's Variant A (human units train 5% faster) and Variant B (A plus softer Adaptation and tougher Maintenance Drones) are both rejected.
+- **Evidence (owner playtests, `difficulty=hard`, `DATA_VERSION` 11):**
+  - **vs `ai=boom`, seeds 201–203: 1 win, 2 losses.** Every loss traces back to the player's own play: no fiber for 80 s, then no Server Racks (968 Data unspent), then an all-Red Team army that the boom bot answered with Botnet Swarms. The win (seed 202) came from lighting fiber early, an early rack, and taking the center: the AI's income fell from 10.8/s to 6.8/s and it had no workers left by 4:30.
+  - **vs `ai=turtle`, seed 101: won at 8:17 on the first try.** The player took the center by 2:00, raided steadily, destroyed the Sentry Guns using Pull the Plug, and the AI had no workers left by 4:00. Owner: "It is completely beatable."
+- **What this says about the bot numbers:** the AI-favored mirrors and the 4% human rush vs AI turtle are bot habits, not faction stats (D-015: bot numbers are warnings). The rush bot attacks the turtle's core and Sentry Guns head-on; a human wins by taking the center and starving the turtle.
+- **Options considered:** Variant A, Variant B, no change (proposal 0003).
+- **Carried forward:** a bot ticket for the rush bot's head-on attacks. The balance warnings stay warnings.
+- **Approved:** owner, 2026-10-27.
+
 ## D-023 — 2026-10-27 — Voxta character General: spoken taunts, shipped "The Model", fun mode, before Phase 3
 - **Decision** (owner's answers to proposal 0004):
   1. **Voice taunts only, first.** The General speaks; the player listens. No player voice input yet, so the rule "player speech never gives orders" has nothing to guard in this version, and stays required for any later two-way version.

@@ -1,6 +1,6 @@
 # Proposal 0003: Faction balance (issue #32)
 
-Status: **proposed, needs owner playtests and approval.** No stat is changed yet. All numbers below come from running the game with the changed values in memory, on the bots and seeds `npm run balance` uses.
+Status: **rejected (D-024, 2026-10-27).** Owner playtests on `difficulty=hard` found both AI strategies beatable, so no stat changes. The tables below are kept for reference. All numbers below come from running the game with the changed values in memory, on the bots and seeds `npm run balance` uses.
 
 ## What the numbers say on main today
 

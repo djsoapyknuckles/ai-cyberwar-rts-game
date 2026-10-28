@@ -2,6 +2,14 @@
 
 The story of building this game, newest first. Wins, failures, surprises, and what the agents did well or badly. Anyone can add an entry.
 
+## 2026-10-27 — The bots said unbalanced; the owner said beatable
+
+- Proposal 0003 had two stat fixes ready for #32, built on bot numbers: the AI wins the slow mirrors, and the human rush bot beats the AI turtle only 4% of the time. Before changing any numbers, the owner played on hard.
+- Against boom, the first two matches were lost to the economy, not the AI. In the first, sites were claimed but had no fiber, so income was 0 until 1:45. In the second, there were no Server Racks, so 968 Data sat unspent. The third match was won by taking the center, which halved the AI's income. The last loss was a mono-Red Team army, which the boom bot answered with 14 Botnet Swarms in one minute.
+- Against turtle, the owner won on the first try: take the center, raid steadily, and use Pull the Plug on the Sentry Guns. No stat changes (D-024).
+- Reading the replays (`npm run replay`) turned each match into a short diagnosis between games, and the player improved every match. The replays also flagged two possible UX gaps: a claimed site with no fiber earns nothing, and one link took 18 clicks to light.
+- Lesson: a bot that loses 96% of a matchup can tell you more about the bot than about the matchup.
+
 ## 2026-10-27 — The Model speaks
 
 - M2.7 is done: pick "AI General (Voxta voice)" and the game's own Voxta character commands the AI and taunts you out loud. The owner heard it in a real browser; headless tests can't.
