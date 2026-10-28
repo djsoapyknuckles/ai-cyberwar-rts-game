@@ -42,7 +42,7 @@ Owner asked for "a decent but inexpensive model". From OpenRouter's model list o
 | `openai/gpt-6-luna` | 0.10 / 0.50 | 7 of 7 | Same price; one route at 93% uptime |
 | `deepseek/deepseek-v4.1-flash` | 0.14 / 0.42 | 39 of 41 | Cheapest; 2 routes ignore `response_format`, so `require_parameters` would be needed |
 
-**Estimated cost per match:** a turn is about 1,300 input and 200 output tokens. A 10-minute match has 30 turns, which comes to **under 1 cent** (about $0.007). Not yet measured: whether it beats the control by +15 points (D-019), its invalid-order rate, and its latency. #29 measures all three and can replace the default. Send no `reasoning` parameter, so turns stay well inside the 10 s timeout.
+**Estimated cost per match:** a turn is about 1,300 input and 200 output tokens. A 10-minute match has 30 turns, which comes to **under 1 cent** (about $0.007). **Measured 2026-10-27: about 1.5 cents per 10-minute match** ($0.0007 per turn), because the real prompt is longer than estimated. Not yet measured: whether it beats the control by +15 points (D-019), its invalid-order rate, and its latency. #29 measures all three and can replace the default. Send no `reasoning` parameter, so turns stay well inside the 10 s timeout.
 
 ## Grounding and tenets
 
