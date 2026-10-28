@@ -82,6 +82,15 @@ describe('LLM tool validation', () => {
     expect(parseTurn('ai', '{not json').errors).toEqual(['turn is not valid JSON']);
     expect(parseTurn('ai', '{"orders":[{"tool":"wait","args":{}}]}').calls).toEqual([{ tool: 'wait', args: {} }]);
   });
+
+  // Seen from claude-haiku-5.5 via OpenRouter: valid JSON wrapped in a markdown code block.
+  it('reads a turn wrapped in a markdown code block', () => {
+    const wait = [{ tool: 'wait', args: {} }];
+    expect(parseTurn('ai', '```json\n{"orders":[{"tool":"wait","args":{}}]}\n```').calls).toEqual(wait);
+    expect(parseTurn('ai', '  ```\n{"orders":[{"tool":"wait","args":{}}]}```  ').calls).toEqual(wait);
+    // Only a block around the whole reply: text around it is still not a turn.
+    expect(parseTurn('ai', 'Here you go:\n```json\n{"orders":[]}\n```').errors).toEqual(['turn is not valid JSON']);
+  });
 });
 
 describe('LLM plans become ordinary commands', () => {
