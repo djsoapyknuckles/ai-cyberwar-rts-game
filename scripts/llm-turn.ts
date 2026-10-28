@@ -4,7 +4,7 @@
 // Usage: npm run llm-turn -- --model qwen3:8b [--url http://localhost:11434] [--minutes 4] [--faction ai] [--seed 3] [--no-think] [--digest]
 import { parseArgs } from 'node:util';
 import { createLlmBrain } from '../src/ai/llm/client.ts';
-import { clientFromArgs, LOCAL_MODEL } from './llm-provider.ts';
+import { clientFromArgs, failureHint } from './llm-provider.ts';
 import { planTurn } from '../src/ai/llm/plan.ts';
 import { systemPrompt } from '../src/ai/llm/prompt.ts';
 import { parseTurn } from '../src/ai/llm/tools.ts';
@@ -48,7 +48,7 @@ try {
   reply = await brain({ tick: view.tick, digest });
 } catch (e) {
   console.error(`request failed: ${String(e)}`);
-  console.error(`Is Ollama running at ${values.url}? Try: ollama serve, then ollama pull ${values.model ?? LOCAL_MODEL}`);
+  console.error(failureHint(values));
   process.exit(1);
 }
 const ms = Math.round(performance.now() - start);

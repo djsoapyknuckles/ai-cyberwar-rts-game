@@ -36,3 +36,13 @@ export function clientFromArgs(v: { provider?: string; model?: string; url: stri
   }
   return createOllamaClient({ model: v.model ?? LOCAL_MODEL, url: v.url, ...(v['no-think'] ? { think: false } : {}) });
 }
+
+/** What to check after a failed request: Ollama's server for Ollama, the key and model for everything else. */
+export function failureHint(v: { provider?: string; model?: string; url: string }): string {
+  if (v.provider === 'openrouter' || v.provider === 'openai') {
+    const p = CLOUD_PROVIDERS[v.provider];
+    return `Check ${p.envKey} in .env and that the model exists on ${p.label} (a 429 means rate-limited: retry later or pick another model).`;
+  }
+  if (v.provider === 'voxta') return 'Is Voxta running, with VOXTA_API_KEY set if it asks for a login?';
+  return `Is Ollama running at ${v.url}? Try: ollama serve, then ollama pull ${v.model ?? LOCAL_MODEL}`;
+}
