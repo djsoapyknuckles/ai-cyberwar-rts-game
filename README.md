@@ -31,6 +31,14 @@ npm test
 npm run sim      # run a match headless, no screen
 ```
 
+## Play against the LLM General
+
+Pick one on the setup screen. Every option uses the same commands and fair-play limits.
+
+- **AI General (local):** a model on your own computer through [Ollama](https://ollama.com) (`ollama serve`, then `ollama pull qwen3:8b`). Free and private; offered only when Ollama answers.
+- **AI General (cloud):** your own API key. Choose a **provider**: OpenAI or [OpenRouter](https://openrouter.ai/keys) (default model `anthropic/claude-haiku-5.5`, under 1 cent per 10-minute match). The key stays in your browser and goes only to that provider. Links: `?ai=llm&provider=openrouter`, plus `&model=...` to skip the model question, or `&newkey` to enter a new key.
+- **AI General (Voxta)** and **(Voxta voice):** your own [Voxta](https://voxta.ai) server; see [`assets/voxta`](assets/voxta).
+
 ## Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md).

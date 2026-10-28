@@ -38,7 +38,7 @@ export interface OpponentInfo {
   /** Scripted strategy, or the LLM General's base strategy. */
   strategy: string;
   model?: string;
-  provider?: 'ollama' | 'openai' | 'voxta';
+  provider?: 'ollama' | 'openai' | 'openrouter' | 'voxta';
   /** A Voxta character playing the General (D-023), e.g. "The Model". */
   character?: string;
   difficulty: string;

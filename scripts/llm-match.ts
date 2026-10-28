@@ -29,7 +29,7 @@ import { TICK_RATE } from '../src/sim/index.ts';
 const { values } = parseArgs({
   options: {
     provider: { type: 'string', default: 'ollama' },
-    model: { type: 'string', default: 'qwen3:8b' },
+    model: { type: 'string' },
     url: { type: 'string', default: process.env.OLLAMA_URL ?? 'http://localhost:11434' },
     matches: { type: 'string', default: '3' },
     seed: { type: 'string', default: '1' },

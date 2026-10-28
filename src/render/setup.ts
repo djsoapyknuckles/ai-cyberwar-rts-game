@@ -1,6 +1,7 @@
 // The setup screen before a match: pick the opponent, how hard it plays, the map, the view and the
 // match length, then Start. Shown before the game is created, so choices apply without a reload.
 import { DIFFICULTIES, DIFFICULTY, type Difficulty } from '../ai/difficulty.ts';
+import { CLOUD_PROVIDERS } from '../ai/llm/providers.ts';
 
 export interface SetupChoice {
   ai: string;
@@ -10,6 +11,8 @@ export interface SetupChoice {
   quick: boolean;
   /** Ollama model for the local General ('llm-local'). */
   model: string;
+  /** Cloud provider for the cloud General ('llm'), from the fixed list (D-025). */
+  cloud: string;
 }
 
 const OPPONENT_TEXT: Record<string, [string, string]> = {
@@ -18,7 +21,7 @@ const OPPONENT_TEXT: Record<string, [string, string]> = {
   boom: ['Boom', 'Builds a big economy, then a big army.'],
   turtle: ['Turtle', 'Walls and defenses first, a slow and heavy push.'],
   brutal: ['Brutal', 'A fast army with full micro from minute one. For veterans.'],
-  llm: ['AI General (cloud)', 'A language model commands the AI, through your own OpenAI API key. Always at full strength.'],
+  llm: ['AI General (cloud)', 'A language model commands the AI, through your own API key (OpenAI or OpenRouter). Always at full strength.'],
   'llm-local': ['AI General (local)', 'A language model on this computer (Ollama) commands the AI. Free and private. Always at full strength.'],
   'llm-voxta': ['AI General (Voxta)', 'Your own Voxta server commands the AI, with whatever text model you set up in Voxta. Always at full strength.'],
   'llm-voxta-voice': ['AI General (Voxta voice)', "The Model, the game's own Voxta character, commands the AI and taunts you out loud. Import it into Voxta first (assets/voxta in the game's repository). Always at full strength."],
@@ -52,6 +55,7 @@ export function promptSetup(current: SetupChoice, maps: { id: string; name: stri
       <div class="setup-grid">
         <div class="setup-row"><span class="setup-label">Opponent</span>${chips('ai', opponents.filter((o) => OPPONENT_TEXT[o]).map((o) => [o, OPPONENT_TEXT[o]![0]]))}<p class="setup-note" data-note="ai"></p></div>
         ${localModels ? `<div class="setup-row" data-row="model"><span class="setup-label">Model</span>${chips('model', localModels.map((m) => [m, m]))}</div>` : ''}
+        <div class="setup-row" data-row="cloud"><span class="setup-label">Provider</span>${chips('cloud', Object.values(CLOUD_PROVIDERS).map((p) => [p.id, p.label]))}</div>
         <div class="setup-row" data-row="difficulty"><span class="setup-label">Difficulty</span>${chips('difficulty', DIFFICULTIES.map((d) => [d, DIFFICULTY[d].label]))}<p class="setup-note" data-note="difficulty"></p></div>
         <div class="setup-row"><span class="setup-label">Map</span>${chips('map', maps.map((m) => [m.id, m.name]))}</div>
         <div class="setup-row"><span class="setup-label">View</span>${chips('renderer', VIEWS)}</div>
@@ -73,6 +77,7 @@ export function promptSetup(current: SetupChoice, maps: { id: string; name: stri
       el.querySelector<HTMLElement>('[data-row="difficulty"]')!.hidden = FULL_STRENGTH.has(choice.ai);
       const modelRow = el.querySelector<HTMLElement>('[data-row="model"]');
       if (modelRow) modelRow.hidden = choice.ai !== 'llm-local';
+      el.querySelector<HTMLElement>('[data-row="cloud"]')!.hidden = choice.ai !== 'llm';
     };
     el.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');

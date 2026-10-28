@@ -30,6 +30,8 @@ export interface GameSettings {
   ai?: string;
   /** Ollama model for the local General and the blind test. */
   localModel?: string;
+  /** Cloud provider for the cloud General (D-025): 'openai' or 'openrouter'. */
+  cloud?: string;
   /** Quick match: richer start and faster claiming, for short sessions. */
   quick?: boolean;
   vibrate?: boolean;
@@ -130,7 +132,7 @@ export function createMobileBar(root: HTMLElement, actions: {
     const next: Required<GameSettings> = {
       renderer: pick('set-renderer'), map: pick('set-map'), ai: pick('set-ai'), quick: pick('set-quick') === 'quick',
       vibrate: pick('set-vibrate') === 'on', battery: pick('set-battery') as BatterySaver, difficulty: pick('set-difficulty'),
-      localModel: cur.localModel,
+      localModel: cur.localModel, cloud: cur.cloud,
     };
     saveSettings(next);
     const newGame = next.renderer !== cur.renderer || next.map !== cur.map || next.ai !== cur.ai || next.quick !== cur.quick || next.difficulty !== cur.difficulty;
