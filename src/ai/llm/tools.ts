@@ -140,7 +140,9 @@ function checkParam(p: Param, v: unknown): string | null {
 export function parseTurn(faction: Faction, raw: unknown): { calls: ToolCall[]; errors: string[] } {
   let value = raw;
   if (typeof raw === 'string') {
-    try { value = JSON.parse(raw); } catch { return { calls: [], errors: ['turn is not valid JSON'] }; }
+    // Some models wrap the JSON in a markdown code block even in JSON mode; read what's inside.
+    const text = /^\s*```(?:json)?\s*([\s\S]*?)\s*```\s*$/.exec(raw)?.[1] ?? raw;
+    try { value = JSON.parse(text); } catch { return { calls: [], errors: ['turn is not valid JSON'] }; }
   }
   if (!isObject(value) || !Array.isArray(value.orders)) return { calls: [], errors: ['turn must be an object with an "orders" array'] };
   const calls: ToolCall[] = [];
