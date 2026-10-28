@@ -1,6 +1,6 @@
 # Proposal 0005: Pick your cloud provider (OpenRouter first)
 
-Status: **proposed, needs owner approval.** Amends D-020. Nothing is built yet.
+Status: **approved (D-025, 2026-10-27), not built yet.** Amends D-020.
 
 ## Problem
 
@@ -15,7 +15,7 @@ Replace "OpenAI only" with a **fixed list of providers** built into the game. Th
 | Provider | Address (fixed in code) | Key slot | Default model |
 |---|---|---|---|
 | OpenAI | `https://api.openai.com/v1` | `openai` (today's slot, unchanged) | chosen by #29 |
-| **OpenRouter** (new) | `https://openrouter.ai/api/v1` | `openrouter` | chosen by #29 |
+| **OpenRouter** (new) | `https://openrouter.ai/api/v1` | `openrouter` | `anthropic/claude-haiku-5.5` (owner: "decent but inexpensive"; see below) |
 
 - **Links can only name a provider from the list** (`?ai=llm&provider=openrouter`), never an address. Same protection as D-020: a key goes only to the address of the provider it was entered for.
 - **One key slot per provider**, so an OpenAI key is never sent to OpenRouter or the other way round. `&newkey` forgets the key for the provider in use.
@@ -31,6 +31,18 @@ Replace "OpenAI only" with a **fixed list of providers** built into the game. Th
 - **Attribution headers (optional):** `HTTP-Referer` and `X-Title: AI Cyberwar RTS` show the game on OpenRouter's app pages. They carry no player data.
 - **Keys:** OpenRouter keys start `sk-or-`, which the existing `redactKeys` already masks (`sk-` prefix).
 - **Later, not in this proposal:** OpenRouter supports OAuth with PKCE from a browser-only app. A "Log in with OpenRouter" button could hand the game a key without the player ever pasting one. It needs its own decision (callback URL on the hosted build, key lifetime).
+
+## OpenRouter default model
+
+Owner asked for "a decent but inexpensive model". From OpenRouter's model list on 2026-10-27, filtered to models whose endpoints support `response_format` at up to $0.50 per million input tokens:
+
+| Model | $ per M tokens, in / out | Endpoints with `response_format` | Notes |
+|---|---|---|---|
+| **`anthropic/claude-haiku-5.5`** (chosen) | 0.10 / 0.50 | 10 of 10 | Every route supports JSON mode; 100% uptime over the last 30 min on all routes |
+| `openai/gpt-6-luna` | 0.10 / 0.50 | 7 of 7 | Same price; one route at 93% uptime |
+| `deepseek/deepseek-v4.1-flash` | 0.14 / 0.42 | 39 of 41 | Cheapest; 2 routes ignore `response_format`, so `require_parameters` would be needed |
+
+**Estimated cost per match:** a turn is about 1,300 input and 200 output tokens. A 10-minute match has 30 turns, which comes to **under 1 cent** (about $0.007). Not yet measured: whether it beats the control by +15 points (D-019), its invalid-order rate, and its latency. #29 measures all three and can replace the default. Send no `reasoning` parameter, so turns stay well inside the 10 s timeout.
 
 ## Grounding and tenets
 
@@ -51,12 +63,12 @@ One PR, under ~400 lines:
 2. `createOpenAiClient` takes extra headers. Test: the OpenRouter client sends `X-Title` and never sends the OpenAI key.
 3. Key prompt and setup screen read the table. Test: the model field is pre-filled with the provider's default.
 4. `--provider openrouter` for `llm-turn` and `llm-match`, key from `OPENROUTER_API_KEY`; `.env.example` gains the variable name with an **empty** value.
-5. DECISIONS entry amending D-020; README "how to play the General" section.
+5. README "how to play the General" section.
 
 Each further provider (Groq, Mistral, …) is then a table row plus a CORS check, done the same way.
 
-## Owner decisions
+## Owner decisions (2026-10-27)
 
-1. Approve the fixed provider list (option 1)?
-2. OpenRouter's default model: decide now, or leave it to #29 and pre-fill nothing until then?
-3. OK to send `HTTP-Referer` and `X-Title` to OpenRouter?
+1. Fixed provider list (option 1): **approved.**
+2. OpenRouter default model: **"choose a decent but inexpensive model"**, so `anthropic/claude-haiku-5.5`, until #29 measures better.
+3. `HTTP-Referer` and `X-Title`: **approved.**
