@@ -5,7 +5,7 @@
 // Latency (M2.3b): a reply never applies on the tick it was asked for. Synchronous brains draw a latency
 // in ticks from `latency` (seeded); async brains apply when their reply arrives, and the measured ticks
 // are logged so headless runs can replay the same distribution.
-import { createRng, digestView, TICK_RATE, type Command, type Digest, type Faction, type FactionView } from '../../sim/index.ts';
+import { createRng, digestView, TICK_RATE, type Command, type Digest, type Faction, type FactionView, type GeneralTurnRecord } from '../../sim/index.ts';
 import type { Controller } from '../controller.ts';
 import { createScriptedBot, type Strategy } from '../scripted.ts';
 import { createEnemyMemory, lastSeen, observe, type LastSeen } from './memory.ts';
@@ -94,6 +94,14 @@ export function directed(base: Strategy, d: Directive): Strategy {
 }
 
 /** Ticks each answered turn took from request to apply, for replaying real latency in headless runs. */
+/** The turn log as saved in a replay (#49): the raw reply left out, chat filtered as the player saw it. */
+export function turnRecords(log: TurnLog[]): GeneralTurnRecord[] {
+  return log.map((t) => ({
+    tick: t.tick, latency: t.latency, orders: t.calls, rejected: t.rejected, errors: t.errors, fallback: t.fallback,
+    chat: t.chat.map(filterChat).filter((m): m is string => m !== null),
+  }));
+}
+
 export function measuredLatencies(log: TurnLog[]): number[] {
   return log.flatMap((t) => (t.latency === null ? [] : [t.latency]));
 }

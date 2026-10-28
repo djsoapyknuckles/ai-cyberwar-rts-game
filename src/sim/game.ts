@@ -31,6 +31,24 @@ export interface Replay {
   commands: StampedCommand[];
   /** Who played the AI side. Written by the browser for the record; not needed to re-run the match. */
   opponent?: OpponentInfo;
+  /** The LLM General's turns (#49), for the record; not needed to re-run the match. */
+  general?: GeneralTurnRecord[];
+}
+
+/** One LLM General turn as saved in a replay: what it decided and said, without the raw reply. */
+export interface GeneralTurnRecord {
+  /** Tick the turn was requested. */
+  tick: number;
+  /** Ticks until the reply applied; null when none came in time. */
+  latency: number | null;
+  /** Validated orders. */
+  orders: { tool: string; args: Record<string, string | number> }[];
+  /** Orders the schema rejected. */
+  rejected: number;
+  errors: string[];
+  fallback: 'late' | 'invalid' | 'error' | null;
+  /** Taunts after the chat filter. */
+  chat: string[];
 }
 
 export interface OpponentInfo {
