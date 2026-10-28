@@ -1,6 +1,6 @@
 // Re-run a saved replay and print what happened: a timeline every 15 s (income, Data sources and any that
 // aren't feeding home, armies, workers) plus the events in between (sites claimed, fiber lit, buildings
-// built and destroyed, losses).
+// built and destroyed, losses). A replay of an LLM General also lists its turns in between (#49).
 // Usage: npm run replay -- path/to/replay.json [--every 15]
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
@@ -21,6 +21,21 @@ let lit = new Map<number, Faction | null>();
 let alive = new Map<number, { f: Faction; type: string }>();
 let built = new Map<number, string>();
 let events: string[] = [];
+const turns = [...(replay.general ?? [])];
+
+/** The General's turns up to `tick`: orders, errors, fallback and taunts, one line each. */
+function generalLines(tick: number): string[] {
+  const out: string[] = [];
+  while (turns.length && turns[0]!.tick <= tick) {
+    const t = turns.shift()!;
+    const lat = t.latency === null ? 'no reply' : `${(t.latency / TICK_RATE).toFixed(1)} s`;
+    // Taunts show as chat (filtered, as the player saw them), not as orders.
+    const orders = t.orders.filter((o) => o.tool !== 'taunt').map((o) => `${o.tool}${Object.keys(o.args).length ? JSON.stringify(o.args) : ''}`).join(' ');
+    const parts = [t.fallback ? `FALLBACK ${t.fallback}` : orders || 'no orders', ...t.errors.map((e) => `! ${e}`), ...t.chat.map((c) => `"${c}"`)];
+    out.push(`        General @${clock(t.tick)} (${lat}): ${parts.join(' · ')}`);
+  }
+  return out;
+}
 
 function line(game: Game): string {
   const w = game.world;
@@ -59,6 +74,7 @@ const game = runReplay(replay, (g) => {
   if (w.tick % every === 0 || w.winner) {
     console.log(line(g));
     if (events.length) console.log(`        ${[...new Set(events)].join('; ')}`);
+    for (const l of generalLines(w.tick)) console.log(l);
     events = [];
   }
 });
@@ -68,4 +84,11 @@ if (o) {
   const who = o.kind === 'llm' ? `LLM General (${o.model ?? '?'} via ${o.provider ?? '?'}, base ${o.strategy})` : `scripted ${o.strategy}`;
   const blind = o.blind ? ` · blind test, guessed ${o.guess ?? 'nothing'}${o.guess ? (o.guess === o.kind ? ' (right)' : ' (wrong)') : ''}` : '';
   console.log(`opponent: ${who}, difficulty ${o.difficulty}${blind}`);
+}
+if (replay.general) {
+  const g = replay.general;
+  const fell = g.filter((t) => t.fallback).length;
+  const orders = g.reduce((a, t) => a + t.orders.length + t.rejected, 0);
+  const rejected = g.reduce((a, t) => a + t.rejected, 0);
+  console.log(`General: ${g.length} turns, ${fell} fallbacks, ${rejected}/${orders} orders rejected, ${g.reduce((a, t) => a + t.chat.length, 0)} taunts`);
 }

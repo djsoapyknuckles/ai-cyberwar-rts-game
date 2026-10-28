@@ -14,7 +14,7 @@ import '@fontsource/chakra-petch/latin-700.css';
 import './ui.css';
 import { createLlmBrain, createOllamaClient, listOllamaModels, type LlmClient } from './ai/llm/client.ts';
 import { filterChat } from './ai/llm/filter.ts';
-import { createGeneral, type Brain } from './ai/llm/general.ts';
+import { createGeneral, turnRecords, type Brain } from './ai/llm/general.ts';
 import { forgetKey, loadKey, saveKey, type KeyStorage } from './ai/llm/keystore.ts';
 import { createOpenAiClient } from './ai/llm/openai.ts';
 import { CLOUD_PROVIDERS, cloudProvider, promptModel } from './ai/llm/providers.ts';
@@ -675,8 +675,10 @@ function frame(now: number): void {
         box.replaceChildren(reveal);
       });
       el.querySelector('#save-replay')?.addEventListener('click', () => {
-        // Seed + command log + versions: enough to re-run the match exactly. Plus who the opponent was.
-        const blob = new Blob([JSON.stringify({ ...toReplay(game), opponent })], { type: 'application/json' });
+        // Seed + command log + versions: enough to re-run the match exactly. Plus who the opponent was and,
+        // for an LLM General, what it decided and said each turn (#49).
+        const record = { ...toReplay(game), opponent, ...(general ? { general: turnRecords(general.log) } : {}) };
+        const blob = new Blob([JSON.stringify(record)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = `replay-${world.winner}-seed${seed}-${Math.trunc(world.tick / TICK_RATE)}s.json`;
