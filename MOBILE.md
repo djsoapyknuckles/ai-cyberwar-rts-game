@@ -34,6 +34,27 @@ cd android
 
 `android/local.properties` (not committed) holds `sdk.dir=` your SDK path. `npm run icons` redraws the app icons, including the Android launcher icons.
 
+### Releases (GitHub Actions)
+
+`.github/workflows/android-release.yml` builds the APK on GitHub. Push a version tag and the APK lands on a GitHub Release:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+# -> Releases page: ai-cyberwar-0.1.0.apk
+```
+
+Running the workflow by hand (Actions tab, "Android release", Run workflow) builds the APK as a downloadable workflow artifact without making a release.
+
+Signing: without secrets the release carries a debug-signed APK (installs fine, but each build's key differs, so updates need an uninstall first). To sign with your own key, make a keystore once and keep it safe (losing it means users can't update):
+
+```sh
+keytool -genkeypair -v -keystore release.jks -alias aicyberwar -keyalg RSA -keysize 2048 -validity 10000
+base64 -w0 release.jks   # macOS: base64 -i release.jks
+```
+
+Then add repository secrets (Settings, Secrets and variables, Actions): `ANDROID_KEYSTORE_BASE64` (the base64 output), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`. Never commit the `.jks` file.
+
 ## Files
 
 - `src/render/touch.ts`: gesture recognizer (pure, tested in `tests/touch.test.ts`)
