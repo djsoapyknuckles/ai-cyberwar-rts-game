@@ -196,6 +196,11 @@ kbd { font: 600 11px var(--font-mono); color: #fff; padding: 1px 5px; border-rad
 #hud-chat { right: 8px; top: 58px; max-width: 360px; font-size: 13px; border-color: rgba(255, 138, 61, 0.35); }
 #hud-chat::before { border-color: var(--ai); }
 #hud-chat b { color: var(--ai); }
+#hud-chat .chat-toggle { display: block; background: none; border: 0; padding: 0; cursor: pointer; color: var(--ai); font: 600 11px var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; }
+#hud-chat.fresh .chat-toggle, #hud-chat.folded .chat-log { display: none; }
+#hud-chat.fresh .chat-log > :not(:last-child) { display: none; }
+#hud-chat.open .chat-log { margin-top: 4px; }
+#hud-chat.folded { padding: 4px 10px; }
 #hud-text { left: 8px; top: auto; bottom: 120px; max-width: 46vw; max-height: 70vh; overflow: auto; margin: 0; font: 12px/1.4 var(--font-mono); color: #b9d2ee; }
 #hud-tip {
   position: fixed; max-width: 320px; padding: 7px 10px; border-radius: var(--r-sm); pointer-events: none; z-index: 30;
@@ -311,6 +316,7 @@ body.touch #hud-alerts div { padding: 4px 8px; font-size: 11px; gap: 6px; }
 body.touch #hud-mode { top: 76px; font-size: 12px; }
 body.touch #hud-messages { top: 102px; } body.touch #hud-messages div { font-size: 11.5px; }
 body.touch #hud-chat { top: 36px; right: 112px; max-width: 34vw; font-size: 11px; }
+body.touch #hud-chat .chat-toggle { min-height: 28px; font-size: 10px; }
 body.touch #hud-start { gap: 10px; padding: 16px; justify-content: safe center; }
 body.touch #hud-start h1 { font-size: 30px; }
 body.touch #hud-start .side { padding: 8px 10px; } body.touch #hud-start .side p, body.touch #hud-start .how { font-size: 12.5px; }
