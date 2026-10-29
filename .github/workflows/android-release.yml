@@ -35,7 +35,7 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
-      - uses: android-actions/setup-android@v3
+      # Android SDK comes preinstalled on ubuntu-latest (ANDROID_HOME); Gradle fetches missing platforms
 
       - run: npm ci
       - run: npm run typecheck
