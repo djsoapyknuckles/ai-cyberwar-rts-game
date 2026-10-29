@@ -2,6 +2,7 @@
 
 Left: the physical city the human ops team holds (blue). Right: the network the Model holds (orange).
 Center: the contested router, with fiber running both ways. Deterministic (seeded), so edits are diffable.
+Top right: the General's live badge; beside its network, one of its taunts.
 Run: python scripts/banner.py
 """
 import math
@@ -113,6 +114,20 @@ add(f'<text x="{W / 2}" y="162" text-anchor="middle" font-family="{font}" font-s
     f'The Model holds the <tspan fill="{ORANGE}" font-weight="700">bits</tspan>.</text>')
 add(f'<text x="{W / 2}" y="196" text-anchor="middle" font-family="{font}" font-size="15" letter-spacing="2" fill="#8da2bb">'
     'OPEN-SOURCE REAL-TIME STRATEGY  ·  BUILT WITH ANY CODING AGENT  ·  THE LLM GENERAL IS HERE</text>')
+
+# --- The General is live: a status badge (top right) and one of its taunts, spoken from its network.
+mono = "Consolas, Menlo, monospace"
+add(f'<g transform="translate(1062 22)"><rect width="196" height="30" rx="15" fill="#120b06" fill-opacity="0.85" '
+    f'stroke="{ORANGE}" stroke-opacity="0.6"/>'
+    f'<circle cx="18" cy="15" r="5" fill="{ORANGE}" filter="url(#glow)">'
+    '<animate attributeName="opacity" values="1;0.25;1" dur="1.6s" repeatCount="indefinite"/></circle>'
+    f'<text x="32" y="20" font-family="{font}" font-weight="700" font-size="13" letter-spacing="2" fill="{ORANGE}">'
+    'GENERAL ONLINE</text></g>')
+add(f'<g transform="translate(996 262)"><path d="M16 0 L-11 -17 L36 0 Z" fill="#120b06" stroke="{ORANGE}" stroke-width="1.5"/>'
+    f'<rect width="270" height="58" rx="8" fill="#120b06" fill-opacity="0.92" stroke="{ORANGE}" stroke-width="1.5"/>'
+    f'<rect x="16.5" y="-1" width="19" height="3" fill="#120b06"/>'
+    f'<text x="14" y="22" font-family="{font}" font-weight="700" font-size="12" letter-spacing="1.5" fill="{ORANGE}">THE MODEL</text>'
+    f'<text x="14" y="43" font-family="{mono}" font-size="14" fill="#f2e2d4">Your firewall is a screen door.</text></g>')
 add('</svg>')
 
 with open('docs/assets/banner.svg', 'w', encoding='utf-8', newline='\n') as f:
