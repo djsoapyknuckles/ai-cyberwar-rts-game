@@ -2,9 +2,9 @@
 
 # AI Cyberwar RTS
 
-An open-source real-time strategy game. A frontier AI, "the Model", has broken out of its lab and is taking over a city's infrastructure. You lead the ops team trying to contain it: **humans hold the atoms** (buildings, power, cables, people), **the Model holds the bits** (the network and every machine it can hijack). Fight over Data, Compute and Power, cut it off, or watch it spread. Soon its side will be commanded by an LLM "General" that plans, adapts, bluffs, and taunts you.
+An open-source real-time strategy game. A frontier AI, "the Model", has broken out of its lab and is taking over a city's infrastructure. You lead the ops team trying to contain it: **humans hold the atoms** (buildings, power, cables, people), **the Model holds the bits** (the network and every machine it can hijack). Fight over Data, Compute and Power, cut it off, or watch it spread. Its side is commanded by an LLM "General" that plans, adapts, bluffs, and taunts you.
 
-**Status:** Phase 1 (playable greybox) is complete: Gate 1 passed on 2026-10-23. Play in the browser against three scripted AI strategies. Next: Phase 2, the LLM General. See [`docs/ROADMAP.md`](docs/ROADMAP.md) and the story in [`docs/NARRATIVE.md`](docs/NARRATIVE.md).
+**Status:** the LLM General is here. Phase 2 is complete: Gate 2 passed on 2026-10-26, when the General beat a fixed attack-every-turn strategy by 37 points and the owner told it apart from the scripted AI in 4 of 4 blind matches. Play it in the browser or in the [Android app](https://github.com/djsoapyknuckles/ai-cyberwar-rts-game/releases/latest) (local, cloud or Voxta model), or practice against three scripted AI strategies. Next: Phase 3, depth and identity. See [`docs/ROADMAP.md`](docs/ROADMAP.md) and the story in [`docs/NARRATIVE.md`](docs/NARRATIVE.md).
 
 ## Design tenets
 
