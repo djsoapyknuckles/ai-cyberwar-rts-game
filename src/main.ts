@@ -656,6 +656,7 @@ function frame(now: number): void {
   minimap.update(view, minimapCamera, now);
   hud.setIntel(intel(view));
   hud.update(world, view, ui.selected, word(describeMode(ui.mode)), speed, paused, Math.round(fps));
+  chat.update(now);
   mobileBar?.setPaused(paused);
   mobileBar?.setSpeed(speed);
   for (const gesture of gestures.tick(now)) onGesture(gesture);
