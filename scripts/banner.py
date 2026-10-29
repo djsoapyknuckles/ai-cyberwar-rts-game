@@ -112,7 +112,7 @@ add(f'<text x="{W / 2}" y="162" text-anchor="middle" font-family="{font}" font-s
     f'Humans hold the <tspan fill="{BLUE}" font-weight="700">atoms</tspan>. '
     f'The Model holds the <tspan fill="{ORANGE}" font-weight="700">bits</tspan>.</text>')
 add(f'<text x="{W / 2}" y="196" text-anchor="middle" font-family="{font}" font-size="15" letter-spacing="2" fill="#8da2bb">'
-    'OPEN-SOURCE REAL-TIME STRATEGY  ·  BUILT WITH ANY CODING AGENT  ·  AN LLM GENERAL IS COMING</text>')
+    'OPEN-SOURCE REAL-TIME STRATEGY  ·  BUILT WITH ANY CODING AGENT  ·  THE LLM GENERAL IS HERE</text>')
 add('</svg>')
 
 with open('docs/assets/banner.svg', 'w', encoding='utf-8', newline='\n') as f:
