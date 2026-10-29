@@ -861,54 +861,54 @@
 <text x="912" y="1005" font-family="Consolas, Menlo, monospace" font-size="10" fill="#ff8a3d" fill-opacity="0.06">110</text>
 <text x="863" y="889" font-family="Consolas, Menlo, monospace" font-size="10" fill="#ff8a3d" fill-opacity="0.15">10</text>
 <text x="885" y="989" font-family="Consolas, Menlo, monospace" font-size="10" fill="#ff8a3d" fill-opacity="0.11">0</text>
-<path d="M75.9375,550.9090909090909 C307.96875,550.9090909090909 307.96875,853.1818181818181 540.0,853.1818181818181" fill="none" stroke="#4aa3ff" stroke-width="7" stroke-opacity="0.12" filter="url(#softglow)"/>
-<path d="M75.9375,550.9090909090909 C307.96875,550.9090909090909 307.96875,853.1818181818181 540.0,853.1818181818181" fill="none" stroke="#4aa3ff" stroke-width="2" stroke-opacity="0.85" stroke-dasharray="10 6"/>
-<circle cx="75.9375" cy="550.9090909090909" r="9" fill="#0b0e12" stroke="#4aa3ff" stroke-width="2.5"/><circle cx="75.9375" cy="550.9090909090909" r="3.5" fill="#4aa3ff"/>
-<path d="M126.5625,980.4545454545454 C333.28125,980.4545454545454 333.28125,853.1818181818181 540.0,853.1818181818181" fill="none" stroke="#4aa3ff" stroke-width="7" stroke-opacity="0.12" filter="url(#softglow)"/>
-<path d="M126.5625,980.4545454545454 C333.28125,980.4545454545454 333.28125,853.1818181818181 540.0,853.1818181818181" fill="none" stroke="#4aa3ff" stroke-width="2" stroke-opacity="0.85" stroke-dasharray="10 6"/>
-<circle cx="126.5625" cy="980.4545454545454" r="9" fill="#0b0e12" stroke="#4aa3ff" stroke-width="2.5"/><circle cx="126.5625" cy="980.4545454545454" r="3.5" fill="#4aa3ff"/>
-<path d="M253.125,757.7272727272727 C396.5625,757.7272727272727 396.5625,853.1818181818181 540.0,853.1818181818181" fill="none" stroke="#4aa3ff" stroke-width="7" stroke-opacity="0.12" filter="url(#softglow)"/>
-<path d="M253.125,757.7272727272727 C396.5625,757.7272727272727 396.5625,853.1818181818181 540.0,853.1818181818181" fill="none" stroke="#4aa3ff" stroke-width="2" stroke-opacity="0.85" stroke-dasharray="10 6"/>
-<circle cx="253.125" cy="757.7272727272727" r="9" fill="#0b0e12" stroke="#4aa3ff" stroke-width="2.5"/><circle cx="253.125" cy="757.7272727272727" r="3.5" fill="#4aa3ff"/>
-<path d="M1004.0625,535.0 C772.03125,535.0 772.03125,853.1818181818181 540.0,853.1818181818181" fill="none" stroke="#ff8a3d" stroke-width="7" stroke-opacity="0.12" filter="url(#softglow)"/>
-<path d="M1004.0625,535.0 C772.03125,535.0 772.03125,853.1818181818181 540.0,853.1818181818181" fill="none" stroke="#ff8a3d" stroke-width="2" stroke-opacity="0.85" stroke-dasharray="10 6"/>
-<circle cx="1004.0625" cy="535.0" r="9" fill="#0b0e12" stroke="#ff8a3d" stroke-width="2.5"/><circle cx="1004.0625" cy="535.0" r="3.5" fill="#ff8a3d"/>
-<path d="M945.0,988.4090909090909 C742.5,988.4090909090909 742.5,853.1818181818181 540.0,853.1818181818181" fill="none" stroke="#ff8a3d" stroke-width="7" stroke-opacity="0.12" filter="url(#softglow)"/>
-<path d="M945.0,988.4090909090909 C742.5,988.4090909090909 742.5,853.1818181818181 540.0,853.1818181818181" fill="none" stroke="#ff8a3d" stroke-width="2" stroke-opacity="0.85" stroke-dasharray="10 6"/>
-<circle cx="945.0" cy="988.4090909090909" r="9" fill="#0b0e12" stroke="#ff8a3d" stroke-width="2.5"/><circle cx="945.0" cy="988.4090909090909" r="3.5" fill="#ff8a3d"/>
-<path d="M826.875,741.8181818181818 C683.4375,741.8181818181818 683.4375,853.1818181818181 540.0,853.1818181818181" fill="none" stroke="#ff8a3d" stroke-width="7" stroke-opacity="0.12" filter="url(#softglow)"/>
-<path d="M826.875,741.8181818181818 C683.4375,741.8181818181818 683.4375,853.1818181818181 540.0,853.1818181818181" fill="none" stroke="#ff8a3d" stroke-width="2" stroke-opacity="0.85" stroke-dasharray="10 6"/>
-<circle cx="826.875" cy="741.8181818181818" r="9" fill="#0b0e12" stroke="#ff8a3d" stroke-width="2.5"/><circle cx="826.875" cy="741.8181818181818" r="3.5" fill="#ff8a3d"/>
-<circle cx="540.0" cy="853.1818181818181" r="70" fill="url(#core)"/>
-<rect x="523.0" y="836.1818181818181" width="34" height="34" transform="rotate(45 540.0 853.1818181818181)" fill="#0b0e12" stroke="#ffffff" stroke-width="3" filter="url(#glow)"/>
-<rect x="298.18970211667676" y="878.5631763454662" width="14" height="14" fill="#4aa3ff" filter="url(#glow)"/>
-<polygon points="329.6950099431109,877.9563829741232 337.6950099431109,885.9563829741232 329.6950099431109,893.9563829741232 321.6950099431109,885.9563829741232" fill="#4aa3ff" filter="url(#glow)"/>
-<circle cx="344.9923678323894" cy="886.6193198746033" r="6" fill="#4aa3ff" filter="url(#glow)"/>
-<rect x="297.14044225824136" y="895.4975484152662" width="14" height="14" fill="#4aa3ff" filter="url(#glow)"/>
-<polygon points="325.5275401599572,899.3746336766376 333.5275401599572,907.3746336766376 325.5275401599572,915.3746336766376 317.5275401599572,907.3746336766376" fill="#4aa3ff" filter="url(#glow)"/>
-<circle cx="348.76515990588246" cy="904.5619987996571" r="6" fill="#4aa3ff" filter="url(#glow)"/>
-<rect x="292.8246197512007" y="919.0161974037441" width="14" height="14" fill="#4aa3ff" filter="url(#glow)"/>
-<polygon points="687.2,968.8 696.8,964.8 696.8,972.7" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="676.9,782.8 686.8,778.7 686.8,786.8" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="698.8,866.8 711.1,861.7 711.1,871.8" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="661.0,922.9 673.3,917.8 673.3,928.0" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="662.0,880.3 674.4,875.2 674.4,885.4" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="703.0,809.4 714.0,804.9 714.0,814.0" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="738.3,899.3 751.5,893.9 751.5,904.8" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="635.2,804.4 644.0,800.8 644.0,808.0" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="692.8,938.0 704.4,933.2 704.4,942.8" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="683.4,834.2 694.9,829.4 694.9,838.9" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="690.5,961.9 702.1,957.1 702.1,966.6" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="743.5,801.4 755.7,796.4 755.7,806.4" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="668.6,848.8 682.1,843.2 682.1,854.3" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="716.1,751.3 725.4,747.5 725.4,755.2" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="685.2,911.2 697.7,906.1 697.7,916.3" fill="#ff8a3d" filter="url(#glow)"/>
-<polygon points="680.3,845.4 692.6,840.3 692.6,850.5" fill="#ff8a3d" filter="url(#glow)"/>
+<path d="M75.9375,609.0909090909091 C307.96875,609.0909090909091 307.96875,781.8181818181818 540.0,781.8181818181818" fill="none" stroke="#4aa3ff" stroke-width="7" stroke-opacity="0.12" filter="url(#softglow)"/>
+<path d="M75.9375,609.0909090909091 C307.96875,609.0909090909091 307.96875,781.8181818181818 540.0,781.8181818181818" fill="none" stroke="#4aa3ff" stroke-width="2" stroke-opacity="0.85" stroke-dasharray="10 6"/>
+<circle cx="75.9375" cy="609.0909090909091" r="9" fill="#0b0e12" stroke="#4aa3ff" stroke-width="2.5"/><circle cx="75.9375" cy="609.0909090909091" r="3.5" fill="#4aa3ff"/>
+<path d="M126.5625,854.5454545454545 C333.28125,854.5454545454545 333.28125,781.8181818181818 540.0,781.8181818181818" fill="none" stroke="#4aa3ff" stroke-width="7" stroke-opacity="0.12" filter="url(#softglow)"/>
+<path d="M126.5625,854.5454545454545 C333.28125,854.5454545454545 333.28125,781.8181818181818 540.0,781.8181818181818" fill="none" stroke="#4aa3ff" stroke-width="2" stroke-opacity="0.85" stroke-dasharray="10 6"/>
+<circle cx="126.5625" cy="854.5454545454545" r="9" fill="#0b0e12" stroke="#4aa3ff" stroke-width="2.5"/><circle cx="126.5625" cy="854.5454545454545" r="3.5" fill="#4aa3ff"/>
+<path d="M253.125,727.2727272727273 C396.5625,727.2727272727273 396.5625,781.8181818181818 540.0,781.8181818181818" fill="none" stroke="#4aa3ff" stroke-width="7" stroke-opacity="0.12" filter="url(#softglow)"/>
+<path d="M253.125,727.2727272727273 C396.5625,727.2727272727273 396.5625,781.8181818181818 540.0,781.8181818181818" fill="none" stroke="#4aa3ff" stroke-width="2" stroke-opacity="0.85" stroke-dasharray="10 6"/>
+<circle cx="253.125" cy="727.2727272727273" r="9" fill="#0b0e12" stroke="#4aa3ff" stroke-width="2.5"/><circle cx="253.125" cy="727.2727272727273" r="3.5" fill="#4aa3ff"/>
+<path d="M1004.0625,600.0 C772.03125,600.0 772.03125,781.8181818181818 540.0,781.8181818181818" fill="none" stroke="#ff8a3d" stroke-width="7" stroke-opacity="0.12" filter="url(#softglow)"/>
+<path d="M1004.0625,600.0 C772.03125,600.0 772.03125,781.8181818181818 540.0,781.8181818181818" fill="none" stroke="#ff8a3d" stroke-width="2" stroke-opacity="0.85" stroke-dasharray="10 6"/>
+<circle cx="1004.0625" cy="600.0" r="9" fill="#0b0e12" stroke="#ff8a3d" stroke-width="2.5"/><circle cx="1004.0625" cy="600.0" r="3.5" fill="#ff8a3d"/>
+<path d="M945.0,859.090909090909 C742.5,859.090909090909 742.5,781.8181818181818 540.0,781.8181818181818" fill="none" stroke="#ff8a3d" stroke-width="7" stroke-opacity="0.12" filter="url(#softglow)"/>
+<path d="M945.0,859.090909090909 C742.5,859.090909090909 742.5,781.8181818181818 540.0,781.8181818181818" fill="none" stroke="#ff8a3d" stroke-width="2" stroke-opacity="0.85" stroke-dasharray="10 6"/>
+<circle cx="945.0" cy="859.090909090909" r="9" fill="#0b0e12" stroke="#ff8a3d" stroke-width="2.5"/><circle cx="945.0" cy="859.090909090909" r="3.5" fill="#ff8a3d"/>
+<path d="M826.875,718.1818181818182 C683.4375,718.1818181818182 683.4375,781.8181818181818 540.0,781.8181818181818" fill="none" stroke="#ff8a3d" stroke-width="7" stroke-opacity="0.12" filter="url(#softglow)"/>
+<path d="M826.875,718.1818181818182 C683.4375,718.1818181818182 683.4375,781.8181818181818 540.0,781.8181818181818" fill="none" stroke="#ff8a3d" stroke-width="2" stroke-opacity="0.85" stroke-dasharray="10 6"/>
+<circle cx="826.875" cy="718.1818181818182" r="9" fill="#0b0e12" stroke="#ff8a3d" stroke-width="2.5"/><circle cx="826.875" cy="718.1818181818182" r="3.5" fill="#ff8a3d"/>
+<circle cx="540.0" cy="781.8181818181818" r="70" fill="url(#core)"/>
+<rect x="523.0" y="764.8181818181818" width="34" height="34" transform="rotate(45 540.0 781.8181818181818)" fill="#0b0e12" stroke="#ffffff" stroke-width="3" filter="url(#glow)"/>
+<rect x="298.18970211667676" y="793.5631763454662" width="14" height="14" fill="#4aa3ff" filter="url(#glow)"/>
+<polygon points="329.6950099431109,792.9563829741232 337.6950099431109,800.9563829741232 329.6950099431109,808.9563829741232 321.6950099431109,800.9563829741232" fill="#4aa3ff" filter="url(#glow)"/>
+<circle cx="344.9923678323894" cy="801.6193198746033" r="6" fill="#4aa3ff" filter="url(#glow)"/>
+<rect x="297.14044225824136" y="810.4975484152662" width="14" height="14" fill="#4aa3ff" filter="url(#glow)"/>
+<polygon points="325.5275401599572,814.3746336766376 333.5275401599572,822.3746336766376 325.5275401599572,830.3746336766376 317.5275401599572,822.3746336766376" fill="#4aa3ff" filter="url(#glow)"/>
+<circle cx="348.76515990588246" cy="819.5619987996571" r="6" fill="#4aa3ff" filter="url(#glow)"/>
+<rect x="292.8246197512007" y="834.0161974037441" width="14" height="14" fill="#4aa3ff" filter="url(#glow)"/>
+<polygon points="687.2,847.9 696.8,843.9 696.8,851.8" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="676.9,741.6 686.8,737.5 686.8,745.7" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="698.8,789.6 711.1,784.5 711.1,794.6" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="661.0,821.7 673.3,816.6 673.3,826.7" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="662.0,797.3 674.4,792.2 674.4,802.4" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="703.0,756.8 714.0,752.3 714.0,761.4" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="738.3,808.2 751.5,802.8 751.5,813.6" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="635.2,754.0 644.0,750.3 644.0,757.6" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="692.8,830.3 704.4,825.5 704.4,835.1" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="683.4,771.0 694.9,766.2 694.9,775.7" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="690.5,843.9 702.1,839.1 702.1,848.7" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="743.5,752.2 755.7,747.2 755.7,757.2" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="668.6,779.3 682.1,773.8 682.1,784.8" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="716.1,723.6 725.4,719.8 725.4,727.5" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="685.2,815.0 697.7,809.8 697.7,820.1" fill="#ff8a3d" filter="url(#glow)"/>
+<polygon points="680.3,777.4 692.6,772.3 692.6,782.5" fill="#ff8a3d" filter="url(#glow)"/>
 <rect width="1080" height="1080" fill="url(#vignette)"/>
-<text x="540.0" y="190" text-anchor="middle" font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="800" font-size="84" letter-spacing="6" fill="#ffffff" filter="url(#glow)">AI CYBERWAR <tspan fill="#ff8a3d">RTS</tspan></text>
-<text x="540.0" y="250" text-anchor="middle" font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="30" fill="#d7e3f2">Humans hold the <tspan fill="#4aa3ff" font-weight="700">atoms</tspan>. The Model holds the <tspan fill="#ff8a3d" font-weight="700">bits</tspan>.</text>
-<text x="540.0" y="296" text-anchor="middle" font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" letter-spacing="2" fill="#8da2bb">OPEN-SOURCE REAL-TIME STRATEGY  ·  BUILT WITH ANY CODING AGENT</text>
-<text x="540.0" y="336" text-anchor="middle" font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="700" font-size="22" letter-spacing="4" fill="#ff8a3d" filter="url(#glow)">THE LLM GENERAL IS HERE</text>
-<g transform="translate(762 24) scale(1.5)"><rect width="196" height="30" rx="15" fill="#120b06" fill-opacity="0.85" stroke="#ff8a3d" stroke-opacity="0.6"/><circle cx="18" cy="15" r="5" fill="#ff8a3d" filter="url(#glow)"></circle><text x="32" y="20" font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="700" font-size="13" letter-spacing="2" fill="#ff8a3d">GENERAL ONLINE</text></g>
-<g transform="translate(497 621) scale(1.5)"><path d="M187 58 L217 76 L207 58 Z" fill="#120b06" stroke="#ff8a3d" stroke-width="1.5"/><rect width="270" height="58" rx="8" fill="#120b06" fill-opacity="0.92" stroke="#ff8a3d" stroke-width="1.5"/><rect x="187.5" y="56" width="19" height="3" fill="#120b06"/><text x="14" y="22" font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="700" font-size="12" letter-spacing="1.5" fill="#ff8a3d">THE MODEL</text><text x="14" y="43" font-family="Consolas, Menlo, monospace" font-size="14" fill="#f2e2d4">Your firewall is a screen door.</text></g>
+<text x="540.0" y="345" text-anchor="middle" font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="800" font-size="84" letter-spacing="6" fill="#ffffff" filter="url(#glow)">AI CYBERWAR <tspan fill="#ff8a3d">RTS</tspan></text>
+<text x="540.0" y="400" text-anchor="middle" font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="30" fill="#d7e3f2">Humans hold the <tspan fill="#4aa3ff" font-weight="700">atoms</tspan>. The Model holds the <tspan fill="#ff8a3d" font-weight="700">bits</tspan>.</text>
+<text x="540.0" y="442" text-anchor="middle" font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" letter-spacing="2" fill="#8da2bb">OPEN-SOURCE REAL-TIME STRATEGY  ·  BUILT WITH ANY CODING AGENT</text>
+<text x="540.0" y="480" text-anchor="middle" font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="700" font-size="22" letter-spacing="4" fill="#ff8a3d" filter="url(#glow)">THE LLM GENERAL IS HERE</text>
+<g transform="translate(393 205) scale(1.5)"><rect width="196" height="30" rx="15" fill="#120b06" fill-opacity="0.85" stroke="#ff8a3d" stroke-opacity="0.6"/><circle cx="18" cy="15" r="5" fill="#ff8a3d" filter="url(#glow)"></circle><text x="32" y="20" font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="700" font-size="13" letter-spacing="2" fill="#ff8a3d">GENERAL ONLINE</text></g>
+<g transform="translate(497 597) scale(1.5)"><path d="M187 58 L217 76 L207 58 Z" fill="#120b06" stroke="#ff8a3d" stroke-width="1.5"/><rect width="270" height="58" rx="8" fill="#120b06" fill-opacity="0.92" stroke="#ff8a3d" stroke-width="1.5"/><rect x="187.5" y="56" width="19" height="3" fill="#120b06"/><text x="14" y="22" font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="700" font-size="12" letter-spacing="1.5" fill="#ff8a3d">THE MODEL</text><text x="14" y="43" font-family="Consolas, Menlo, monospace" font-size="14" fill="#f2e2d4">Your firewall is a screen door.</text></g>
 </svg>

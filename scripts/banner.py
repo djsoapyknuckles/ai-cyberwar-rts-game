@@ -12,9 +12,10 @@ import sys
 
 SQUARE = '--square' in sys.argv
 W, H = (1080, 1080) if SQUARE else (1280, 440)
-# The scene is laid out for 1280x440; the square puts it in a band under a taller title.
-TOP = 360 if SQUARE else 0
-KX, KY = W / 1280, (H - TOP - 20) / 440
+# The scene is laid out for 1280x440. The square keeps everything that matters in its middle band (y 200-900),
+# because chat apps crop square previews to a wide strip: title block on top, fiber and units below it.
+TOP, BOTTOM = (500, 900) if SQUARE else (0, H)
+KX, KY = W / 1280, (BOTTOM - TOP) / 440
 DENSITY = 2 if SQUARE else 1
 
 
@@ -127,16 +128,16 @@ add(f'<rect width="{W}" height="{H}" fill="url(#vignette)"/>')
 # --- Title.
 font = "'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif"
 mono = "Consolas, Menlo, monospace"
-title_y, title_size = (190, 84) if SQUARE else (118, 78)
+title_y, title_size = (345, 84) if SQUARE else (118, 78)
 add(f'<text x="{W / 2}" y="{title_y}" text-anchor="middle" font-family="{font}" font-weight="800" font-size="{title_size}" '
     f'letter-spacing="6" fill="#ffffff" filter="url(#glow)">AI CYBERWAR <tspan fill="{ORANGE}">RTS</tspan></text>')
-add(f'<text x="{W / 2}" y="{250 if SQUARE else 162}" text-anchor="middle" font-family="{font}" font-size="{30 if SQUARE else 24}" fill="#d7e3f2">'
+add(f'<text x="{W / 2}" y="{400 if SQUARE else 162}" text-anchor="middle" font-family="{font}" font-size="{30 if SQUARE else 24}" fill="#d7e3f2">'
     f'Humans hold the <tspan fill="{BLUE}" font-weight="700">atoms</tspan>. '
     f'The Model holds the <tspan fill="{ORANGE}" font-weight="700">bits</tspan>.</text>')
 if SQUARE:
-    add(f'<text x="{W / 2}" y="296" text-anchor="middle" font-family="{font}" font-size="16" letter-spacing="2" fill="#8da2bb">'
+    add(f'<text x="{W / 2}" y="442" text-anchor="middle" font-family="{font}" font-size="16" letter-spacing="2" fill="#8da2bb">'
         'OPEN-SOURCE REAL-TIME STRATEGY  ·  BUILT WITH ANY CODING AGENT</text>')
-    add(f'<text x="{W / 2}" y="336" text-anchor="middle" font-family="{font}" font-weight="700" font-size="22" letter-spacing="4" '
+    add(f'<text x="{W / 2}" y="480" text-anchor="middle" font-family="{font}" font-weight="700" font-size="22" letter-spacing="4" '
         f'fill="{ORANGE}" filter="url(#glow)">THE LLM GENERAL IS HERE</text>')
 else:
     add(f'<text x="{W / 2}" y="196" text-anchor="middle" font-family="{font}" font-size="15" letter-spacing="2" fill="#8da2bb">'
@@ -147,7 +148,7 @@ else:
 pulse = '' if SQUARE else '<animate attributeName="opacity" values="1;0.25;1" dur="1.6s" repeatCount="indefinite"/>'
 # The square is seen as a small preview in chat apps, so its overlays are drawn larger.
 zoom = 1.5 if SQUARE else 1
-place = f'translate({W - 24 - 196 * zoom:.0f} 24) scale({zoom})' if SQUARE else f'translate({W - 218} 22)'
+place = f'translate({W / 2 - 98 * zoom:.0f} 205) scale({zoom})' if SQUARE else f'translate({W - 218} 22)'
 add(f'<g transform="{place}"><rect width="196" height="30" rx="15" fill="#120b06" fill-opacity="0.85" '
     f'stroke="{ORANGE}" stroke-opacity="0.6"/>'
     f'<circle cx="18" cy="15" r="5" fill="{ORANGE}" filter="url(#glow)">{pulse}</circle>'
