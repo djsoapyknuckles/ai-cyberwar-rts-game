@@ -2,6 +2,17 @@
 
 Newest first. Each entry: date, decision, options considered, reason. Changes to design pillars need owner approval.
 
+## D-026 — 2026-10-29 — A Voxta module sets up The Model; the game stays its own app (amends D-023's setup)
+- **Decision** (owner's answers to proposal 0006):
+  - A small **Voxta module** is the installer for the Voxta character General. It installs The Model from the `.voxpak` it carries, serves a connect page on Voxta's own address that makes a `chat`-scope API key and hands it to the game (after the `#` in the address), puts AI Cyberwar in Voxta's Play library, and lists the remaining manual step (the chat preset) as the module's Setup steps.
+  - **The game stays its own app** and keeps its own Voxta chat client (`src/ai/llm/voxta-chat.ts`). Voxta never runs or touches the game; tool calls go through the same validator, planner, APM cap and reaction delay as every General.
+  - **Lives in this repository** (`voxta-module/`), released with voxta-module-actions on `Voxta.Modules.AiCyberwar/v*` tags. **GitHub source only** for now (`publish: false`).
+  - **Voxta 1.13** (pre-release builds already have the Play library); SDK `Voxta.Sdk.Modules` `1.13.0-alpha.14` until 1.13.0 is on NuGet.
+  - **Players run the game locally** (`npm run dev` or a built copy); the game's address is a module setting, default `http://localhost:5173/`. No public copy: there is no hosting yet.
+- **Spike result (2026-10-29):** see proposal 0006. With a key in the hub address the game reaches Voxta from its own address with no `Cors:AllowedOrigins` entry; with "allow external apps" off, other websites can't reach the module or the key list (403), and the game without a key is refused.
+- **Options considered:** the module serves the game from Voxta's address (rejected: text-only responses, game would live inside Voxta); the module runs the chat GameBridge-style (rejected: rewrites the existing client in C#); a desktop build of the game (later, if ever).
+- **Approved:** owner, 2026-10-29.
+
 ## D-025 — 2026-10-27 — Cloud General: a fixed list of providers, OpenRouter first (amends D-020)
 - **Decision** (owner's answers to proposal 0005):
   - The browser's cloud General offers a **fixed list of providers built into the game**: OpenAI and OpenRouter to start. Each provider has a fixed address, its own key slot and a default model. A link can name a provider from the list (`?ai=llm&provider=openrouter`) but never an address, so D-020's rule holds: a key goes only to the address of the provider it was entered for.

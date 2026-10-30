@@ -1,6 +1,6 @@
 # Proposal 0006: A Voxta module that sets up The Model
 
-Status: **proposed, waiting for the owner.** Spike done (2026-10-29, below). Builds on D-022 and D-023.
+Status: **approved (D-026, 2026-10-29), being built.** Spike done (below). Builds on D-022 and D-023.
 
 ## Problem
 
@@ -76,12 +76,12 @@ Limits found:
 - Third-party modules show as "unverified" and Voxta asks before every install and update, until Voxta Cloud reviews a release.
 - Carries the game and data version, like every other file the game ships (Definition of done 9).
 
-## Owner decisions needed
+## Owner decisions
 
-1. **Go ahead?** The module replaces the four setup steps with "install the module" plus the preset.
+1. ✅ **Go ahead** (owner, 2026-10-29).
 2. ✅ **Where it lives:** a folder in this repository, released with voxta-module-actions (owner, 2026-10-29). GitHub source only for now (`publish: false`); asking Voxta to list it can come later.
 3. ✅ **Which Voxta:** 1.13; its pre-release builds already have the Play library, so no waiting.
-4. **Game address:** players run the game locally (`npm run dev`, or a built copy), or a public copy (for example GitHub Pages). A public `https` copy talking to `localhost` may get a browser permission prompt (Chrome's local network access); to check before choosing it.
+4. ✅ **Game address:** players run the game locally (`npm run dev`, or a built copy); no public copy, there is no hosting yet. Default setting `http://localhost:5173/`.
 
 ## Open questions
 
@@ -92,7 +92,7 @@ Limits found:
 ## Build plan
 
 1. ✅ **Spike** (above).
-2. Owner decisions, then a D-026 entry.
+2. ✅ Owner decisions, D-026.
 3. Game: read the key from the address, detection without `fetch`; tests.
 4. Module: connect page, install The Model, Play library entry, Setup steps, setting; release workflow.
 5. Update `assets/voxta/README.md`: install the module, import the preset, play.
