@@ -1,0 +1,54 @@
+# The Voxta module (voxta-module/, D-026). Pull requests and main: build and pack it as a release would.
+# Push a tag Voxta.Modules.AiCyberwar/v<version> (matching its module.json) to release it with Voxta's reusable
+# workflow; players add this repository as a module source in Voxta. Game tags (v*) never release it.
+name: Voxta module
+
+on:
+  push:
+    branches: [main]
+    tags: ['Voxta.Modules.AiCyberwar/v*']
+    paths: ['voxta-module/**', 'assets/voxta/**', 'public/icon-512.png', 'global.json', '.github/workflows/voxta-module.yml']
+  pull_request:
+    paths: ['voxta-module/**', 'assets/voxta/**', 'public/icon-512.png', 'global.json', '.github/workflows/voxta-module.yml']
+
+permissions: {}
+
+jobs:
+  pack:
+    if: github.ref_type != 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      # Locked restore (voxta-module/Directory.Build.props) and the same packing step as a release.
+      - run: dotnet publish voxta-module/Voxta.Modules.AiCyberwar -c Release -p:VoxtaModulePack="$PWD/dist"
+      - run: test -f dist/voxta-module.json
+
+  release:
+    if: github.ref_type == 'tag'
+    uses: voxta-ai/voxta-module-actions/.github/workflows/release.yml@v1
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    with:
+      # GitHub source only for now (D-026): not listed in Voxta's own module source.
+      publish: false
+
+  # GitHub makes the newest release "Latest"; give it back to the game's, which the README's Android link opens.
+  keep-game-latest:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag=$(gh release list --exclude-drafts --exclude-pre-releases --limit 100 --json tagName --jq '[.[].tagName | select(startswith("v"))][0] // empty')
+          if [[ -n "$tag" ]]; then gh release edit "$tag" --latest; fi

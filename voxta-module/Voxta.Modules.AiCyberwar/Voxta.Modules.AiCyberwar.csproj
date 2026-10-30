@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <!-- Dependencies next to the DLL, so Voxta can load the build folder as a dev folder. -->
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- The oldest Voxta supported (module.json "voxta"). Voxta provides it at runtime. -->
+        <PackageReference Include="Voxta.Sdk.Modules" Version="1.13.0-alpha.14" ExcludeAssets="runtime" />
+        <!-- Voxta's own address, to open its connect page (IServerAddressesFeature); the host provides it. -->
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Assets\Cover.svg" />
+        <EmbeddedResource Include="Assets\Onboarding.md" />
+        <!-- One copy of each, in the game's assets: the character the game looks for, and its chat preset. -->
+        <EmbeddedResource Include="..\..\assets\voxta\The Model.character.1.0.0.voxpak" LogicalName="TheModel.voxpak" />
+        <EmbeddedResource Include="..\..\assets\voxta\ai-cyberwar-preset.json" LogicalName="ai-cyberwar-preset.json" />
+        <EmbeddedResource Include="..\..\public\icon-512.png" LogicalName="Voxta.Modules.AiCyberwar.Assets.Logo.png" />
+    </ItemGroup>
+
+</Project>

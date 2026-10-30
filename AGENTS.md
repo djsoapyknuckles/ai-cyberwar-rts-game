@@ -10,6 +10,7 @@ Open-source 2D real-time strategy game. Humans fight an AI faction, commanded by
 
 - TypeScript (strict), Node >= 22.18 (runs `.ts` directly), Vite, Vitest.
 - PixiJS v8 for rendering.
+- .NET 10 only for the Voxta module (`voxta-module/`, D-026); the game never needs it.
 
 ## Layout
 
@@ -22,6 +23,7 @@ Open-source 2D real-time strategy game. Humans fight an AI faction, commanded by
 | `scripts/` | Node CLI tools (headless sim runner) | |
 | `tests/` | Vitest tests (`*.test.ts`) | |
 | `docs/` | Roadmap, pillars, decisions, journal | |
+| `voxta-module/` | Voxta module (C#): installs The Model, hands the game a chat key, Play library entry (D-026) | Setup only: never game logic or game state. Embeds `assets/voxta/` files by link, never a copy. Release by tagging `Voxta.Modules.AiCyberwar/v<version>` (matching its `module.json`). |
 
 ## Commands
 
@@ -44,6 +46,7 @@ npm run llm-match -- --control --matches 30                         # control on
 npm run llm-match -- --model qwen3:8b --matches 30 --out results.json  # also save matches, turn logs and summary as JSON (game + data version)
 npm run llm-match -- --provider voxta-chat --character "The Model" --human control --matches 10   # a Voxta character plays the General (D-023); key with chat scope from VOXTA_API_KEY
 npm run build
+dotnet build voxta-module/Voxta.Modules.AiCyberwar                    # the Voxta module (needs the .NET 10 SDK)
 npm run shot -- "http://localhost:5173/?seed=3&human=boom&ai=turtle&autostart" shot.png --wait 20   # headless screenshot after 20 s of play; prints chat + page errors, exits 1 on errors (BROWSER_PATH overrides)
 # Visual checks: with `npm run dev` running, open (or screenshot headless) e.g.
 # http://localhost:5173/?seed=3&human=boom&ai=turtle&autostart&skip=40

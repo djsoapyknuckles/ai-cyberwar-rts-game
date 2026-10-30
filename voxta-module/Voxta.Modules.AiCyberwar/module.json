@@ -1,0 +1,9 @@
+{
+  "id": "Voxta.Modules.AiCyberwar",
+  "version": "0.1.0",
+  "author": "AI Cyberwar",
+  "voxta": ">=1.13.0",
+  "label": "AI Cyberwar",
+  "category": "Games",
+  "description": "Play the AI Cyberwar RTS against The Model, a Voxta character who commands the AI and taunts you out loud. Installs the character and connects the game, which runs in your browser."
+}
