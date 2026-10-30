@@ -16,7 +16,7 @@ The module does only setup:
 
 1. **Installs The Model.** The module carries `The Model.character.1.0.0.voxpak` and installs it for the player's account through Voxta's resource deployer. It writes nothing when the installed version is current, updates it when the module ships a new version, and keeps the player's own edits.
 2. **Hands the game a key.** It serves a small "connect" page on Voxta's own address. That page makes an API key with the `chat` scope only, labelled "AI Cyberwar", deletes the previous one with that label, and sends the player to the game with the key after the `#` in the address (browsers never send that part to a server). The game saves the key and removes it from the address bar at once.
-3. **Puts the game in Voxta's Play library** (the first Voxta release after 1.13.0; on Voxta's main since 2026-10-21, not released yet). Play installs The Model, then opens the connect page in the browser. The game's address is a module setting.
+3. **Puts the game in Voxta's Play library** (in Voxta 1.13 pre-release builds; the owner's has it, with Voxta for Skyrim listed). Play installs The Model, then opens the connect page in the browser. The game's address is a module setting.
 
 The game never runs inside Voxta, and Voxta never touches game state. Tool calls still go through the same validator, planner, APM cap and reaction delay as every other General.
 
@@ -25,7 +25,7 @@ The game never runs inside Voxta, and Voxta never touches game state. Tool calls
 | Step today | With the module |
 |---|---|
 | Import The Model | Done by the module |
-| Import the chat preset (reasoning off) | **Still by hand.** Voxta has no way for a module to install a preset that the spike found. Open question below. |
+| Import the chat preset (reasoning off) | **Still by hand**, but shown as the module's "Setup steps" in the Play library (`ModuleOnboarding`: Markdown, one `##` heading per step), with the preset file. Voxta has no way for a module to install a preset that the spike found. |
 | Add the game's address to `Cors:AllowedOrigins`, restart Voxta | Not needed (see the small game change) |
 | Make an API key, paste it into the game | Done by the connect page |
 | Allow external apps (hidden step) | Not needed; the player can turn it off |
@@ -33,7 +33,7 @@ The game never runs inside Voxta, and Voxta never touches game state. Tool calls
 
 ## Spike result (2026-10-29)
 
-A throwaway module (`Voxta.Modules.AiCyberwarSpike`, kept outside this repo) was built against Voxta 1.13.0 and loaded as a dev folder into the owner's Voxta 1.13.0. A stand-in game page on `http://localhost:5174` played the game's part: read the key from the address, open Voxta's hub with it, list characters. A headless browser drove both. The module was unloaded and its key deleted afterwards.
+A throwaway module (`Voxta.Modules.AiCyberwarSpike`, kept outside this repo) was built against Voxta's source at the `v1.13.0` tag and loaded as a dev folder into the owner's Voxta 1.13.0 pre-release (built 2026-10-29). A stand-in game page on `http://localhost:5174` played the game's part: read the key from the address, open Voxta's hub with it, list characters. A headless browser drove both. The module was unloaded and its key deleted afterwards.
 
 | Check | Allow external apps on | Allow external apps off |
 |---|---|---|
@@ -50,8 +50,8 @@ What this shows:
 - Installing The Model from the module reports `Current` for a Voxta that already has the imported package, so existing players keep their character.
 
 Limits found:
-- **Voxta 1.13.0 has no Play library for modules.** The library API (`ILauncher`) is in Voxta's code after 1.13.0. On 1.13 the player opens the connect page by address or from a link in the module's settings.
-- **No Voxta SDK package for 1.13** on NuGet (latest is 1.12.0). The spike built against Voxta's source at the `v1.13.0` tag.
+- **The `v1.13.0` git tag is older than Voxta's 1.13.0 pre-release builds.** The tag (2026-10-19) has no Play library, but the owner's 1.13.0 build does (`/api/launchers` lists Voxta for Skyrim). The spike did not use the library.
+- **SDK on NuGet:** `Voxta.Sdk.Modules` `1.13.0-alpha.14` (2026-10-27) has everything the module needs: `ILauncher`, `ModuleOnboarding`, `IAppResourceDeployer`, `ModuleHttpAccess` and the packing step.
 - **Only Voxta's Full edition** loads add-on modules (not Lite or hosted).
 - **Not tested:** a Voxta with a password, where the browser the connect page opens in may need to sign in first.
 
@@ -71,7 +71,7 @@ Limits found:
   - Not the shared `build.yml`: it runs `dotnet build` at the root, where there is no .NET project. A small job of our own packs the module on pull requests that touch `voxta-module/`.
   - The module's GitHub releases sit in the same list as the game's. Voxta skips releases without a `voxta-module.json`, so game releases don't confuse it; the module release may show as "Latest" on GitHub.
   - The character comes from `assets/voxta/` (linked in the project, not copied), so there is one copy.
-- **SDK:** the workflow needs `Voxta.Sdk.Modules` 1.13.0 or later from NuGet. Only `1.13.0-alpha.14` is there today (it has the packing step); use it, or wait for 1.13.0.
+- **SDK:** the workflow needs `Voxta.Sdk.Modules` 1.13.0 or later from NuGet. `1.13.0-alpha.14` is there today and has every API above; move to 1.13.0 when it is published.
 - **Two ways to reach players:** with `publish: false`, players add this repository on Voxta's Module Registries page. With `publish: true`, Voxta's own module list carries it, which needs Voxta to trust the repository (their portal) and a tag ruleset protecting the module tags.
 - Third-party modules show as "unverified" and Voxta asks before every install and update, until Voxta Cloud reviews a release.
 - Carries the game and data version, like every other file the game ships (Definition of done 9).
@@ -80,12 +80,12 @@ Limits found:
 
 1. **Go ahead?** The module replaces the four setup steps with "install the module" plus the preset.
 2. ✅ **Where it lives:** a folder in this repository, released with voxta-module-actions (owner, 2026-10-29). GitHub source only for now (`publish: false`); asking Voxta to list it can come later.
-3. **Which Voxta:** 1.13 (connect page only) now, or wait for the Voxta release with the Play library.
+3. ✅ **Which Voxta:** 1.13; its pre-release builds already have the Play library, so no waiting.
 4. **Game address:** players run the game locally (`npm run dev`, or a built copy), or a public copy (for example GitHub Pages). A public `https` copy talking to `localhost` may get a browser permission prompt (Chrome's local network access); to check before choosing it.
 
 ## Open questions
 
-- **The preset.** Ask Voxta for a way for modules to install a chat preset, or to start the game's chat with reasoning off. Until then it stays a manual step with today's instructions.
+- **The preset.** Ask Voxta for a way for modules to install a chat preset, or to start the game's chat with reasoning off. Until then it stays a manual step, listed in the module's Setup steps.
 - **A Voxta with a password:** check the connect page signs in and comes back.
 - **Old keys:** one key per player, replaced on every Play. Check the label-match delete does not touch keys the player named "AI Cyberwar" themselves (use a more specific label).
 
@@ -94,6 +94,5 @@ Limits found:
 1. ✅ **Spike** (above).
 2. Owner decisions, then a D-026 entry.
 3. Game: read the key from the address, detection without `fetch`; tests.
-4. Module: connect page, install The Model, setting; release workflow.
-5. Play library entry, once the owner's Voxta has it.
-6. Update `assets/voxta/README.md`: install the module, import the preset, play.
+4. Module: connect page, install The Model, Play library entry, Setup steps, setting; release workflow.
+5. Update `assets/voxta/README.md`: install the module, import the preset, play.
