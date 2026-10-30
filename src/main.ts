@@ -8,6 +8,7 @@
 // &map=duel|long picks the map (Duel is the default; Long Haul is longer, with two fiber routes).
 // Testing: &human=rush|boom|turtle lets a bot play your side (to watch or screenshot), &autostart skips the start screen,
 // &skip=60 fast-forwards 60 seconds before the first frame.
+// #voxta-key=… (D-026): the AI Cyberwar Voxta module's Play button hands over a chat key for the voice General.
 import '@fontsource/chakra-petch/latin-500.css';
 import '@fontsource/chakra-petch/latin-600.css';
 import '@fontsource/chakra-petch/latin-700.css';
@@ -21,6 +22,7 @@ import { CLOUD_PROVIDERS, cloudProvider, promptModel } from './ai/llm/providers.
 import { createVoxtaClient, detectVoxta, VOXTA_MODEL, voxtaPort } from './ai/llm/voxta.ts';
 import { createVoxtaBrain, findCharacter, THE_MODEL, VOXTA_TURN_TIMEOUT } from './ai/llm/voxta-brain.ts';
 import { createVoxtaChat } from './ai/llm/voxta-chat.ts';
+import { loadVoiceKey, takeLinkKey } from './ai/llm/voxta-link.ts';
 import { createVoice } from './render/voice.ts';
 import { promptForKey } from './render/keyprompt.ts';
 import { createScriptedBot, OPPONENTS, STRATEGIES, TRAINING } from './ai/scripted.ts';
@@ -61,6 +63,18 @@ if (!params.has('seed') && !params.has('human') && !params.has('ai')) {
 // Setup screen: choose opponent, difficulty, map, view and match length before the game is created.
 // Skipped when resuming, with ?autostart, or when the link already picks the opponent or seed.
 const touchUi = isTouchUi(params);
+// D-020: the player's own key, entered when needed, kept for the session (or on this device if they ask).
+const keyStore = (s: () => Storage): KeyStorage => ({
+  getItem: (k) => s().getItem(k), setItem: (k, v) => s().setItem(k, v), removeItem: (k) => s().removeItem(k),
+});
+const [keySession, keyLocal] = [keyStore(() => sessionStorage), keyStore(() => localStorage)];
+// D-026: Voxta's Play button opens the game with a fresh chat key after the '#'; keep it for this tab only and
+// take it out of the address bar, so it isn't left in history or a copied link.
+const linked = takeLinkKey(location.hash);
+if (linked.key) {
+  saveKey(linked.key, false, keySession, keyLocal, 'voxta-chat');
+  history.replaceState(history.state, '', location.pathname + location.search + linked.hash);
+}
 const setupDone = !resume && !params.has('autostart') && !params.has('ai') && !params.has('seed') && !params.has('stress');
 /** What the setup screen learned about Voxta, so the page asks Voxta only once (each unkeyed check logs a 401 there). */
 let voxtaSeen: Awaited<ReturnType<typeof detectVoxta>> | undefined;
@@ -72,8 +86,11 @@ if (setupDone) {
     listOllamaModels(params.get('ollama') ? { url: params.get('ollama')! } : {}),
     detectVoxta({ port: voxtaPort(params.get('voxtaPort')) }),
   ]);
+  // The voice General talks to Voxta's hub, which a key lets in from any address: no CORS entry, so the
+  // detection above can miss a Voxta that the module's key opens.
+  const voiceReady = !!voxtaFound || !!loadVoiceKey(keySession, keyLocal);
   const { model: localModel, ...choice } = await promptSetup({
-    ai: s.ai && (OPPONENTS[s.ai] || FULL_STRENGTH.has(s.ai)) ? s.ai : 'training',
+    ai: linked.key ? 'llm-voxta-voice' : s.ai && (OPPONENTS[s.ai] || FULL_STRENGTH.has(s.ai)) ? s.ai : 'training',
     difficulty: isDifficulty(s.difficulty) ? s.difficulty : 'normal',
     map: s.map && MAPS[s.map] ? s.map : 'duel',
     renderer: s.renderer ?? 'pixi',
@@ -82,7 +99,7 @@ if (setupDone) {
     cloud: cloudProvider(s.cloud)?.id ?? 'openai',
   }, Object.values(MAPS).map((m) => ({ id: m.id, name: m.name })),
   ['training', ...Object.keys(OPPONENTS).filter((o) => o !== 'training'), 'llm', ...(localModels ? ['llm-local', 'blind'] : []),
-    ...(voxtaFound ? ['llm-voxta', 'llm-voxta-voice'] : [])], touchUi, localModels);
+    ...(voxtaFound ? ['llm-voxta'] : []), ...(voiceReady ? ['llm-voxta-voice'] : [])], touchUi, localModels);
   voxtaSeen = voxtaFound;
   saveSettings({ ...s, ...choice, localModel });
 }
@@ -130,11 +147,6 @@ const cloud = !viaVoxta && !voiced && !!cloudPick;
 let model = (voiced ? 'voxta-chat' : viaVoxta ? VOXTA_MODEL : params.get('model') ?? (savedLocal ? saved.localModel ?? 'qwen3:8b' : cloud ? '' : 'qwen3:8b')).replace(/[^\w.:/-]/g, '');
 const ollama = params.get('ollama');
 let client: LlmClient | null = null;
-// D-020: the player's own key, entered when needed, kept for the session (or on this device if they ask).
-const keyStore = (s: () => Storage): KeyStorage => ({
-  getItem: (k) => s().getItem(k), setItem: (k, v) => s().setItem(k, v), removeItem: (k) => s().removeItem(k),
-});
-const [keySession, keyLocal] = [keyStore(() => sessionStorage), keyStore(() => localStorage)];
 /** The character General's brain, its name, and a note for the player once the HUD exists. */
 let voxtaBrain: Brain | null = null;
 let character: string | undefined;
@@ -144,11 +156,11 @@ let voiceMuted = () => false;
 if (useLlm && voiced) {
   // A Voxta with a login asks for the player's key (chat scope); one without needs none.
   const port = voxtaPort(params.get('voxtaPort'));
-  if (params.has('newkey')) forgetKey(keySession, keyLocal, 'voxta');
-  let apiKey = loadKey(keySession, keyLocal, 'voxta');
+  if (params.has('newkey')) { forgetKey(keySession, keyLocal, 'voxta-chat'); forgetKey(keySession, keyLocal, 'voxta'); }
+  let apiKey = loadVoiceKey(keySession, keyLocal);
   if (!apiKey && (voxtaSeen === undefined ? await detectVoxta({ port }) : voxtaSeen) === 'needs-key') {
     const answer = await promptForKey(model, true, { kind: 'voxta', port, scope: 'chat' });
-    if (answer?.key) { saveKey(answer.key, answer.remember, keySession, keyLocal, 'voxta'); apiKey = answer.key; }
+    if (answer?.key) { saveKey(answer.key, answer.remember, keySession, keyLocal, 'voxta-chat'); apiKey = answer.key; }
   }
   const voice = createVoice({ base: `http://localhost:${port}`, muted: () => voiceMuted() });
   const chat = createVoxtaChat({ apiKey: apiKey ?? '', port, playback: voice, startTimeoutMs: 8000 });

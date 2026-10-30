@@ -1,7 +1,8 @@
 // Where a player's own API key lives in the browser (D-020). Session storage by default, so it is gone
 // when the tab closes; local storage only if the player asks to remember it on this device.
-/** One slot per provider, so an OpenAI, OpenRouter or Voxta key never overwrites another (D-025). */
-export type KeySlot = 'openai' | 'openrouter' | 'voxta';
+/** One slot per provider, so an OpenAI, OpenRouter or Voxta key never overwrites another (D-025). The Voxta
+ * text General (inference scope) and voice General (chat scope, D-026) keep separate keys. */
+export type KeySlot = 'openai' | 'openrouter' | 'voxta' | 'voxta-chat';
 const keyName = (slot: KeySlot) => `cyberwar.${slot}-key`;
 
 /** The parts of Web Storage this needs, so tests can pass a plain object. Every call may throw (private mode). */
