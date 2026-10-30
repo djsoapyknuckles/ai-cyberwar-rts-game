@@ -2,6 +2,12 @@
 
 The story of building this game, newest first. Wins, failures, surprises, and what the agents did well or badly. Anyone can add an entry.
 
+## 2026-10-29 — A Voxta module as the installer
+
+- Spike for proposal 0006: a throwaway Voxta module served a "connect" page on Voxta's own address, made a chat-only key, installed The Model and sent the player to the game. The game's side reached the hub with that key from another address, with no CORS setting. It worked first time end to end.
+- Surprise: the October entry "a fresh Voxta needed no key" was true only because the owner's account allows external apps. With that on, every website can use Voxta as an administrator. With it off, the game without a key is refused, and other websites can't reach the module at all. The key path makes the setting unnecessary.
+- Voxta 1.13.0 has the module web pages and the resource installer, but not the Play library; that comes in a later Voxta.
+
 ## 2026-10-27 — The first cloud General on OpenRouter
 
 - The cloud General can now run on OpenRouter as well as OpenAI (D-025), with `anthropic/claude-haiku-5.5` as the default. The owner put $5 of credit on OpenRouter and played one match. The taunts were "reasonable", it never showed "General offline", and it felt different from the scripted Boom bot: it pulled its army out of the center to catch a small group heading north.
