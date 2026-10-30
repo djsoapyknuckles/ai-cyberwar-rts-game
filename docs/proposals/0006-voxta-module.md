@@ -16,7 +16,7 @@ The module does only setup:
 
 1. **Installs The Model.** The module carries `The Model.character.1.0.0.voxpak` and installs it for the player's account through Voxta's resource deployer. It writes nothing when the installed version is current, updates it when the module ships a new version, and keeps the player's own edits.
 2. **Hands the game a key.** It serves a small "connect" page on Voxta's own address. That page makes an API key with the `chat` scope only, labelled "AI Cyberwar", deletes the previous one with that label, and sends the player to the game with the key after the `#` in the address (browsers never send that part to a server). The game saves the key and removes it from the address bar at once.
-3. **Puts the game in Voxta's Play library** (Voxta 1.14 and later). Play installs The Model, then opens the connect page in the browser. The game's address is a module setting.
+3. **Puts the game in Voxta's Play library** (the first Voxta release after 1.13.0; on Voxta's main since 2026-10-21, not released yet). Play installs The Model, then opens the connect page in the browser. The game's address is a module setting.
 
 The game never runs inside Voxta, and Voxta never touches game state. Tool calls still go through the same validator, planner, APM cap and reaction delay as every other General.
 
