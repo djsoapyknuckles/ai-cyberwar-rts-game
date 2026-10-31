@@ -2,6 +2,14 @@
 
 The story of building this game, newest first. Wins, failures, surprises, and what the agents did well or badly. Anyone can add an entry.
 
+## 2026-10-30 — A fix sent upstream to Voxta
+
+- The owner installed the released module the way a player would, pressed Play, and the game connected. The Model gave its orders, but there was no voice.
+- The cause was in Voxta, not the game. Once Voxta had a password, or "prevent other apps" was on, it blocked the speech audio links whenever another site asked for them. A browser `<audio>` element can't send a key, so the game's player got nothing. Voxta's own code comment said these links were meant to work without headers.
+- Instead of a workaround in the game, we sent Voxta a fix: let speech links through the cross-site guard and keep everything else blocked. The owner tested it on a local build. voxta-server PR #1991 was merged under an hour after it was opened, and it is in the v1.13.0 pre-release. The game's Voxta setup now asks for 1.13.0 or newer.
+- With the README rewritten around the module, M2.7 is done. A player now installs the module, imports one preset, and presses Play. No CORS edits and no keys to copy by hand.
+- Lesson: when a bug is in a dependency and you can see the intended behavior in its own code, a small upstream PR can beat a workaround.
+
 ## 2026-10-29 — A Voxta module as the installer
 
 - Spike for proposal 0006: a throwaway Voxta module served a "connect" page on Voxta's own address, made a chat-only key, installed The Model and sent the player to the game. The game's side reached the hub with that key from another address, with no CORS setting. It worked first time end to end.
