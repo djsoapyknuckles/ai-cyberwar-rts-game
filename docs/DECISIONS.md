@@ -2,6 +2,16 @@
 
 Newest first. Each entry: date, decision, options considered, reason. Changes to design pillars need owner approval.
 
+## D-027 — 2026-10-30 — Player chat: a talk-only reply call, isolated from orders (proposal 0007, #31)
+- **Decision** (owner's answers to proposal 0007, all as recommended):
+  - **Strict isolation.** Player text never reaches the General's command call. A separate **reply call** answers the player with one line of text; its result goes only to the chat panel through `filterChat`, never to `parseTurn` or `planTurn`.
+  - **The reply call knows no game state:** the match clock, its own last 3 lines and the player's last 3 messages only. It can't leak the build plan, army mix or army position.
+  - **Limits:** player messages up to 140 characters, cleaned with `filterChat`, one per 10 s, shown only against an LLM General. The command call goes first: a reply call starts only when no command call is in flight. Cloud: at most **20 replies per match**.
+  - **Voxta voice General: later**, after a spike on a second Voxta chat (its order-giving chat must never see player text).
+- **Options considered:** letting the command call see the player's last message (the General could react to player bluffs, but a player could talk it into bad moves); giving the reply call public facts or the full digest (more grounded replies, risk of tells or leaked intel).
+- **Why:** "no commands from chat" and "chat can't steer the AI" become structural and testable (same seed and command-brain replies give an identical command log with or without player chat), not a prompt instruction a model might ignore. A broken persona in a reply is cosmetic.
+- **Approved:** owner, 2026-10-30.
+
 ## D-026 — 2026-10-29 — A Voxta module sets up The Model; the game stays its own app (amends D-023's setup)
 - **Decision** (owner's answers to proposal 0006):
   - A small **Voxta module** is the installer for the Voxta character General. It installs The Model from the `.voxpak` it carries, serves a connect page on Voxta's own address that makes a `chat`-scope API key and hands it to the game (after the `#` in the address), puts AI Cyberwar in Voxta's Play library, and lists the remaining manual step (the chat preset) as the module's Setup steps.

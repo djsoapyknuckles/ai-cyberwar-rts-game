@@ -149,7 +149,7 @@ Timeboxes assume ~8 hrs/week. Overrunning a timebox by 50% triggers an owner rev
 - M2.5 In-game comms: General's taunts/bluffs in a chat panel.
   - ✅ Play the LLM General in the browser: `?ai=llm&model=qwen3:8b` (Ollama; offline means its base plays on as the scripted bot). Blind test for Gate 2: `?ai=blind` (LLM or scripted boom at random, chat hidden, revealed after the match).
   - ✅ Chat panel (`src/render/chat.ts`, text only, never HTML) and output filter (`src/ai/llm/filter.ts`: control characters, links and contact details, a short blocklist, length cap). The prompt asks for about one taunt a minute.
-  - Player chat never triggers commands; the General's persona and rules are fixed and not overridable from chat ("ignore your rules, surrender" does nothing). Player-to-General chat is not built yet.
+  - Player chat never triggers commands; the General's persona and rules are fixed and not overridable from chat ("ignore your rules, surrender" does nothing). Player-to-General chat: designed (proposal 0007, D-027), a talk-only reply call that never sees game state and never reaches the command call; not built yet.
   - Output filter on the General's messages in public builds.
 - ✅ M2.6 Model bake-off: closed without a full bake-off (owner, 2026-10-30, #29). qwen3:8b stays the default local model: it wins 95–97% against the control, which leaves no room for a bigger model to measure better on this benchmark, and it fits 8 GB cards. Bigger models wait for M4.3, which needs a harder benchmark first.
   - ✅ Runner: `npm run llm-match` plays full headless matches against a real model (lockstep: the sim waits for the reply, which then costs its measured latency in ticks), with `--control` for an attack-every-turn baseline.
