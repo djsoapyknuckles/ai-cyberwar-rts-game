@@ -44,7 +44,7 @@ The General already makes one model call per turn, every 20 s: the **command cal
 - Output: `{ "reply": "<one line>" }`, a structured-output schema with no tools. Anything else counts as no reply.
 - Timeout 8 s; no reply means nothing is shown (or "…" once, see open questions). The match never waits.
 - **The command call goes first.** A reply call starts only when no command call is in flight, so a local GPU never makes an order late because of chat. A message that waits more than 10 s is dropped.
-- Its lines join `you_said`, so the command call's taunts don't repeat them. That's the General's *own* text, already filtered, never the player's.
+- Replies stay out of the command call. A reply is shaped by player text, so an injection could make it say "I'll attack W now"; if the command call read it in `you_said`, the player would be steering orders after all. The reply call does see the command call's taunts, so it doesn't repeat them. (Changed during the build, step 3: the draft let replies join `you_said`.)
 
 **Cost.**
 - Local (Ollama): free; one short call per message, about 1 s on a 3090.
@@ -96,8 +96,8 @@ All four answered 2026-10-30, each as recommended (D-027).
 ## Build plan
 
 1. ✅ Owner decisions; `docs/DECISIONS.md` entry (D-027).
-2. Reply call: prompt, schema, `createReplyBrain()` for Ollama and the OpenAI-compatible client, tests 2–3.
-3. General: player messages, rate limit, "command call first", the 20-reply cap, tests 1, 4, 5.
+2. ✅ Reply call: prompt, schema, `createReplyBrain()` for Ollama and the OpenAI-compatible client, tests 2–3.
+3. ✅ General: player messages, rate limit, "command call first", the 20-reply cap, tests 1, 4, 5.
 4. Chat panel input box and "typing…" state; replay file field.
 5. `npm run llm-chat` eval; owner reads one transcript.
 6. Later (decision 3): Voxta voice replies, after a spike on a second Voxta chat.
