@@ -1,6 +1,6 @@
 # Proposal 0007: Talk back to the General
 
-Status: **approved (D-027, 2026-10-30), ready to build.** Issue #31, ROADMAP M2.5. Builds on D-020, D-023 and the chat filter (`src/ai/llm/filter.ts`).
+Status: **approved (D-027, 2026-10-30), built** (steps 2-5; Voxta voice later). Issue #31, ROADMAP M2.5. Builds on D-020, D-023 and the chat filter (`src/ai/llm/filter.ts`).
 
 ## Problem
 
@@ -99,5 +99,5 @@ All four answered 2026-10-30, each as recommended (D-027).
 2. ✅ Reply call: prompt, schema, `createReplyBrain()` for Ollama and the OpenAI-compatible client, tests 2–3.
 3. ✅ General: player messages, rate limit, "command call first", the 20-reply cap, tests 1, 4, 5.
 4. ✅ Chat panel input box and "typing…" state; replay file field.
-5. `npm run llm-chat` eval; owner reads one transcript.
+5. ✅ `npm run llm-chat` eval; owner reads one transcript.
 6. Later (decision 3): Voxta voice replies, after a spike on a second Voxta chat.

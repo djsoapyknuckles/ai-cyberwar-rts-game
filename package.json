@@ -20,6 +20,7 @@
     "replay": "node scripts/replay.ts",
     "llm-turn": "node --env-file-if-exists=.env scripts/llm-turn.ts",
     "llm-match": "node --env-file-if-exists=.env scripts/llm-match.ts",
+    "llm-chat": "node --env-file-if-exists=.env scripts/llm-chat.ts",
     "android:sync": "vite build && cap sync android",
     "icons": "node scripts/make-icons.ts",
     "shot": "node scripts/shot.ts"

@@ -59,6 +59,12 @@ The game asks for the model and the key once. Add `&model=...` to the link to sk
 
 `?ai=blind` puts either the local General or the scripted Boom bot on the AI side, at random, and hides the chat panel. After the match you guess which one you played, then the game tells you. It keeps a tally of your guesses. It needs the local setup above; this is the test the owner used to pass Gate 2.
 
+## Talk back
+
+Against an LLM General, open the 💬 chat panel and type into the box. The General answers with one line. You can send one message every 10 seconds; a paid model (cloud, or Voxta's text option) stops answering after 20 replies a match. The Voxta voice General doesn't answer typed messages yet.
+
+What you type goes only to a separate, talk-only call. It never reaches the call that gives the General's orders, and that call never sees game state, so chat can't change what the AI does or get its plan out of it (D-027). It can still bluff.
+
 ## Troubleshooting
 
 When the General fails, its base keeps playing as the scripted bot, so the match always goes on. The game shows one message the first time this happens.
@@ -82,6 +88,7 @@ These run the General from the command line, for testing and benchmarks.
 npm run llm-turn -- --model qwen3:8b                  # one turn against local Ollama; prints the reply and the time it took
 npm run llm-match -- --model qwen3:8b --human control --matches 30 --with-control   # full matches against the attack-every-turn control
 npm run llm-turn -- --provider openrouter             # one turn against OpenRouter
+npm run llm-chat -- --model qwen3:8b                  # chat: banter and injection attempts, prints every reply
 ```
 
 Like the browser game, these ask a local model to answer without reasoning first. `--think` turns reasoning on, for experiments only: a qwen3 turn then takes 10–30 s instead of about a second, most turns miss the 10-second limit, and the match is mostly the scripted bot. The old `--no-think` flag still works and changes nothing.
