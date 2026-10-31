@@ -22,6 +22,18 @@ let alive = new Map<number, { f: Faction; type: string }>();
 let built = new Map<number, string>();
 let events: string[] = [];
 const turns = [...(replay.general ?? [])];
+const talk = [...(replay.talk ?? [])];
+
+/** Player chat and the General's replies up to `tick` (D-027): talk only, never orders. */
+function talkLines(tick: number): string[] {
+  const out: string[] = [];
+  while (talk.length && talk[0]!.tick <= tick) {
+    const t = talk.shift()!;
+    const said = t.text === null ? `(no reply${t.error ? `: ${t.error}` : ''})` : `"${t.text}"`;
+    out.push(`        ${t.from === 'player' ? 'Player' : 'General'} @${clock(t.tick)}: ${said}`);
+  }
+  return out;
+}
 
 /** The General's turns up to `tick`: orders, errors, fallback and taunts, one line each. */
 function generalLines(tick: number): string[] {
@@ -75,6 +87,7 @@ const game = runReplay(replay, (g) => {
     console.log(line(g));
     if (events.length) console.log(`        ${[...new Set(events)].join('; ')}`);
     for (const l of generalLines(w.tick)) console.log(l);
+    for (const l of talkLines(w.tick)) console.log(l);
     events = [];
   }
 });
