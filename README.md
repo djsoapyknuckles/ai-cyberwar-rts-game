@@ -33,7 +33,7 @@ npm run sim      # run a match headless, no screen
 
 ## Play against the LLM General
 
-Pick one on the setup screen. Every option uses the same commands and fair-play limits.
+Pick one on the setup screen. Every option uses the same commands and fair-play limits. Setup, links and troubleshooting: [`docs/PLAY-THE-GENERAL.md`](docs/PLAY-THE-GENERAL.md).
 
 - **AI General (local):** a model on your own computer through [Ollama](https://ollama.com) (`ollama serve`, then `ollama pull qwen3:8b`). Free and private; offered only when Ollama answers.
 - **AI General (cloud):** your own API key. Choose a **provider**: OpenAI or [OpenRouter](https://openrouter.ai/keys) (default model `anthropic/claude-haiku-5.5`, about 1.5 cents per 10-minute match). The key stays in your browser and goes only to that provider. Links: `?ai=llm&provider=openrouter`, plus `&model=...` to skip the model question, or `&newkey` to enter a new key.

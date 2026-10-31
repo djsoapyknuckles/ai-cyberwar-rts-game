@@ -171,7 +171,7 @@ if (useLlm && voiced) {
       voxtaBrain = createVoxtaBrain({ chat, characterId: found.id, faction: 'ai' });
     } else {
       chat.close();
-      voxtaNote = `${THE_MODEL} isn't in your Voxta yet: import it from assets/voxta (see its README). Playing the scripted AI.`;
+      voxtaNote = `${THE_MODEL} isn't in your Voxta yet: install the AI Cyberwar module and press Play in Voxta (see assets/voxta/README.md). Playing the scripted AI.`;
     }
   } catch (e) {
     chat.close();
