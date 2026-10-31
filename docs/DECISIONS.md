@@ -61,6 +61,7 @@ Newest first. Each entry: date, decision, options considered, reason. Changes to
   - Owner blind test: 4 of 4 guessed right; "I was able to clearly tell whether I was playing against the LLM vs just a scripted bot."
   - Cloud mode in scope (D-020).
 - **Why qwen3:8b:** the only model measured, and it passes every criterion with margin. It needs about 5.6 GB of GPU memory, so 8 GB cards can run it; responses take about 1 s on an RTX 3090. Larger models are untested (#29) and can replace it if they measure better.
+- **Update (2026-10-30, owner):** no full bake-off (#29 closed). qwen3:8b stays the default. The head-to-head can't show a bigger model doing better (8B already wins 95–97%), and bigger models need more GPU memory and time per turn. Smaller models (qwen3:4b) are untested. Larger tiers return with M4.3 and a harder benchmark.
 - **Carried forward:** faction balance warnings (#32: turtle weak against pressure, AI-favored boom/turtle mirrors); bot proxy warnings (skill test). Neither blocks the gate (D-019).
 - **Approved:** owner, 2026-10-26.
 
