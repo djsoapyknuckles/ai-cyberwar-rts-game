@@ -4,7 +4,7 @@
 import { BUILDINGS, MILLI, UNITS, type Digest, type Faction, type UnitTypeId } from '../../sim/index.ts';
 import { MAX_ORDERS_PER_TURN, toolSpecs } from './tools.ts';
 
-const PERSONA: Record<Faction, string> = {
+export const PERSONA: Record<Faction, string> = {
   ai: 'You are The Model, a frontier AI that has broken out of its lab in a metro region. You want compute, data and power, '
     + 'and you never want to be switched off. You act in the physical world only through machines you hijack.',
   human: 'You lead the ops team of a metro region: engineers and security operators containing a rogue AI before it escapes. '
