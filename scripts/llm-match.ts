@@ -4,9 +4,10 @@
 // Prints per-match results and the Gate 2 numbers (D-018): win rate, gap to the attack-every-turn
 // control on the same seeds, invalid-command rate, p95 latency.
 // Usage: npm run llm-match -- --model qwen3:8b [--matches 30] [--seed 1] [--human control|all|boom|rush|turtle] [--base boom]
-//   [--minutes 20] [--no-think] [--chat] [--with-control] [--control] [--out results.json]
+//   [--minutes 20] [--think] [--chat] [--with-control] [--control] [--out results.json]
 // --provider voxta-chat [--character name]: a Voxta character plays the General (D-023), one chat per match;
 //   key (chat scope) from VOXTA_API_KEY; first character if --character is not given.
+// --think: let a local model reason before answering (off by default, like the browser game; slow, most turns run late).
 // --with-control: also play the control on the same seeds and report the gap. --control: control only, no model.
 // --out: also save results, every General turn log and the summary as JSON (with game + data version).
 // Gate 2 (D-018): npm run llm-match -- --human control --matches 30 --with-control. The control-vs-control
@@ -36,6 +37,7 @@ const { values } = parseArgs({
     human: { type: 'string', default: 'all' },
     base: { type: 'string', default: 'boom' },
     minutes: { type: 'string', default: '20' },
+    think: { type: 'boolean', default: false },
     'no-think': { type: 'boolean', default: false },
     chat: { type: 'boolean', default: false },
     'with-control': { type: 'boolean', default: false },

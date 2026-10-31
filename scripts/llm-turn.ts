@@ -1,7 +1,7 @@
 // One LLM General turn against a real model, for checking a model before batch runs.
 // Plays scripted bots to a mid-game state, sends that faction's digest, and prints the reply,
-// validation result, planned commands and latency.
-// Usage: npm run llm-turn -- --model qwen3:8b [--url http://localhost:11434] [--minutes 4] [--faction ai] [--seed 3] [--no-think] [--digest]
+// validation result, planned commands and latency. --think lets a local model reason first (off by default).
+// Usage: npm run llm-turn -- --model qwen3:8b [--url http://localhost:11434] [--minutes 4] [--faction ai] [--seed 3] [--think] [--digest]
 import { parseArgs } from 'node:util';
 import { createLlmBrain } from '../src/ai/llm/client.ts';
 import { clientFromArgs, failureHint } from './llm-provider.ts';
@@ -20,6 +20,7 @@ const { values } = parseArgs({
     minutes: { type: 'string', default: '4' },
     faction: { type: 'string', default: 'ai' },
     seed: { type: 'string', default: '3' },
+    think: { type: 'boolean', default: false },
     'no-think': { type: 'boolean', default: false },
     digest: { type: 'boolean', default: false },
   },
