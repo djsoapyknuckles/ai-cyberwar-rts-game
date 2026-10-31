@@ -93,6 +93,6 @@ Limits found:
 
 1. ✅ **Spike** (above).
 2. ✅ Owner decisions, D-026.
-3. Game: read the key from the address, detection without `fetch`; tests.
-4. Module: connect page, install The Model, Play library entry, Setup steps, setting; release workflow.
-5. Update `assets/voxta/README.md`: install the module, import the preset, play.
+3. ✅ Game: read the key from the address, detection without `fetch`; tests.
+4. ✅ Module: connect page, install The Model, Play library entry, Setup steps, setting; release workflow.
+5. ✅ Update `assets/voxta/README.md`: install the module, import the preset, play.
