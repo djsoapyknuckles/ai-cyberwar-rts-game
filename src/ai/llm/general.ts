@@ -12,6 +12,10 @@ import { createEnemyMemory, lastSeen, observe, type LastSeen } from './memory.ts
 import { filterChat } from './filter.ts';
 import { planTurn, type Directive } from './plan.ts';
 import { parseTurn, type ToolCall } from './tools.ts';
+import type { ReplyBrain } from './reply.ts';
+import { createTalk, type HearResult, type TalkEntry } from './talk.ts';
+
+export { PLAYER_MESSAGE_GAP, REPLY_WAIT_MAX, type HearResult, type TalkEntry } from './talk.ts';
 
 /**
  * The model's raw reply for one turn (JSON text or object), or null for no reply. May return a Promise
@@ -45,6 +49,10 @@ export interface TurnLog {
 
 export interface General extends Controller {
   readonly log: TurnLog[];
+  /** Player chat and the General's replies (D-027). Never part of the command call. */
+  readonly talk: TalkEntry[];
+  /** A player message for the reply call; never reaches the command brain. */
+  hear(text: string, tick: number): HearResult;
 }
 
 export interface GeneralOptions {
@@ -61,6 +69,10 @@ export interface GeneralOptions {
    */
   lockstep?: boolean;
   name?: string;
+  /** Answers player chat (D-027); without it the General doesn't listen. */
+  reply?: ReplyBrain;
+  /** Most replies per match (cloud: 20, D-027). */
+  replyCap?: number;
 }
 
 /** Default ticks between LLM turns: 20 s, inside the roadmap's 15-30 s strategy cadence. */
@@ -134,6 +146,8 @@ export function createGeneral(faction: Faction, brain: Brain, base: Strategy, op
   const memory = createEnemyMemory();
   /** The General's last TAUNT_MEMORY chat lines as players saw them (filtered); only its own output. */
   let said: string[] = [];
+  // Player chat lives apart: the command brain below never sees it, and it never sees the command brain.
+  const talk = createTalk(opts.reply, opts.replyCap);
 
   function request(view: FactionView): Pending {
     const p: Pending = { tick: view.tick, readyAt: null, arrived: false, reply: null, crashed: null, inflight: null };
@@ -183,7 +197,7 @@ export function createGeneral(faction: Faction, brain: Brain, base: Strategy, op
       const plan = planTurn(view, entry.calls);
       entry.errors.push(...plan.errors);
       entry.chat = plan.chat;
-      for (const m of plan.chat) { const clean = filterChat(m); if (clean) said.push(clean); }
+      for (const m of plan.chat) { const clean = filterChat(m); if (clean) { said.push(clean); talk.spoke(clean); } }
       said = said.slice(-TAUNT_MEMORY);
       directive = { ...directive, ...plan.directive };
       outbox = plan.commands;
@@ -195,6 +209,8 @@ export function createGeneral(faction: Faction, brain: Brain, base: Strategy, op
   return {
     name: opts.name ?? `general(${base.name})`,
     log,
+    talk: talk.log,
+    hear: (text, tick) => talk.hear(text, tick),
     settle: async () => { await pending?.inflight; },
     decide(view: FactionView): Command[] {
       observe(memory, view);
@@ -212,6 +228,7 @@ export function createGeneral(faction: Faction, brain: Brain, base: Strategy, op
           pending = null;
         }
       }
+      talk.pump(view, pending !== null);
       const next = outbox.shift();
       const scripted = ops.decide(view);
       return next ? [next, ...scripted] : scripted;
