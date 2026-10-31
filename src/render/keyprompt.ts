@@ -10,6 +10,11 @@ export interface KeyAnswer { key: string; model: string; remember: boolean }
 /** Voxta's `scope`: `inference` for its text endpoint (D-022), `chat` for a character General (D-023). */
 export type KeyProvider = { kind: 'cloud'; provider: CloudProvider } | { kind: 'voxta'; port: number; scope?: 'inference' | 'chat' };
 
+/** The Voxta module (D-026) hands the game chat keys only, so only the voice General's prompt points to it. */
+export function pointsToModule(provider: KeyProvider): boolean {
+  return provider.kind === 'voxta' && provider.scope === 'chat';
+}
+
 export function promptForKey(model: string, needKey: boolean, provider: KeyProvider = { kind: 'cloud', provider: CLOUD_PROVIDERS.openai }): Promise<KeyAnswer | null> {
   return new Promise((resolve) => {
     const voxta = provider.kind === 'voxta';
@@ -22,6 +27,8 @@ export function promptForKey(model: string, needKey: boolean, provider: KeyProvi
       <p>Your Voxta server on this computer (localhost:<span data-port></span>) commands the AI. It asks for a login,
       so the game needs a Voxta <b>API key with the <span data-scope></span> scope</b> (Voxta → API keys). The key
       stays in this browser and is sent only to your Voxta. It is never added to the game, the URL or any file.</p>
+      <p data-module hidden>Installed the AI Cyberwar module in Voxta? Then skip this: press <b>Play</b> on AI Cyberwar in
+      Voxta's Play library, and it opens the game with a key.</p>
       <input type="hidden" name="model">
       <label>API key <input type="password" name="key" autocomplete="off" spellcheck="false" required></label>
       <label class="remember"><input type="checkbox" name="remember"> Remember the key on this device</label>
@@ -40,6 +47,7 @@ export function promptForKey(model: string, needKey: boolean, provider: KeyProvi
     if (provider.kind === 'voxta') {
       form.querySelector('[data-port]')!.textContent = String(provider.port);
       form.querySelector('[data-scope]')!.textContent = provider.scope ?? 'inference';
+      (form.querySelector('[data-module]') as HTMLElement).hidden = !pointsToModule(provider);
     } else {
       // Set as text and attributes, never HTML.
       const p = provider.provider;

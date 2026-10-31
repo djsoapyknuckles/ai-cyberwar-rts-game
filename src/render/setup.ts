@@ -24,7 +24,7 @@ const OPPONENT_TEXT: Record<string, [string, string]> = {
   llm: ['AI General (cloud)', 'A language model commands the AI, through your own API key (OpenAI or OpenRouter). Always at full strength.'],
   'llm-local': ['AI General (local)', 'A language model on this computer (Ollama) commands the AI. Free and private. Always at full strength.'],
   'llm-voxta': ['AI General (Voxta)', 'Your own Voxta server commands the AI, with whatever text model you set up in Voxta. Always at full strength.'],
-  'llm-voxta-voice': ['AI General (Voxta voice)', "The Model, the game's own Voxta character, commands the AI and taunts you out loud. Import it into Voxta first (assets/voxta in the game's repository). Always at full strength."],
+  'llm-voxta-voice': ['AI General (Voxta voice)', "The Model, the game's own Voxta character, commands the AI and taunts you out loud. Set it up with the AI Cyberwar module for Voxta (assets/voxta in the game's repository). Always at full strength."],
   blind: ['Blind test', 'The local AI General or the scripted Boom bot, at random, both at full strength. You learn which after the match.'],
 };
 /** Opponents that ignore difficulty: the General is benchmarked at full strength, and a blind test must be fair. */
