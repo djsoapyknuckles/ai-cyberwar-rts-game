@@ -16,6 +16,8 @@ import './ui.css';
 import { createLlmBrain, createOllamaClient, listOllamaModels, type LlmClient } from './ai/llm/client.ts';
 import { filterChat } from './ai/llm/filter.ts';
 import { createGeneral, turnRecords, type Brain } from './ai/llm/general.ts';
+import { createReplyBrain } from './ai/llm/reply.ts';
+import { replyCapFor, talkRecords } from './ai/llm/talk.ts';
 import { forgetKey, loadKey, saveKey, type KeyStorage } from './ai/llm/keystore.ts';
 import { createOpenAiClient } from './ai/llm/openai.ts';
 import { CLOUD_PROVIDERS, cloudProvider, promptModel } from './ai/llm/providers.ts';
@@ -26,7 +28,7 @@ import { loadVoiceKey, takeLinkKey } from './ai/llm/voxta-link.ts';
 import { createVoice } from './render/voice.ts';
 import { promptForKey } from './render/keyprompt.ts';
 import { createScriptedBot, OPPONENTS, STRATEGIES, TRAINING } from './ai/scripted.ts';
-import { createChatPanel } from './render/chat.ts';
+import { createChatPanel, isTypingTarget } from './render/chat.ts';
 import { createSession, tickSession } from './harness/session.ts';
 import { createStats, recordStats } from './harness/stats.ts';
 import { attachSummaryHover, summaryHtml } from './render/summary.ts';
@@ -210,7 +212,11 @@ if (useLlm && voiced) {
 } else if (useLlm) {
   client = createOllamaClient({ model, think: false, ...(ollama ? { url: ollama } : {}) });
 }
-const general = client ? createGeneral('ai', createLlmBrain(client, 'ai'), strategy, { seed })
+// Player chat (D-027): a separate talk-only reply call on the same model, never in the blind test (chat is hidden there).
+// Paid models (cloud, Voxta's text endpoint) stop answering after 20 replies; the Voxta voice General doesn't listen yet.
+const reply = client && !blind ? createReplyBrain(client, 'ai') : undefined;
+const talkOpts = reply ? { reply, replyCap: replyCapFor(!cloud && !viaVoxta) } : {};
+const general = client ? createGeneral('ai', createLlmBrain(client, 'ai'), strategy, { seed, ...talkOpts })
   : voxtaBrain ? createGeneral('ai', voxtaBrain, strategy, { seed, timeout: VOXTA_TURN_TIMEOUT }) : null;
 const aiName = blind ? 'AI (blind test)' : general ? `The Model (${voiced ? 'Voxta voice' : viaVoxta ? 'Voxta' : model})` : `AI (${strategy.name}) · ${level.label}`;
 // Who played the AI side, saved with the replay; a blind test also records the player's guess.
@@ -257,7 +263,8 @@ const hudRoot = document.createElement('div');
 hudRoot.id = 'hud';
 document.body.appendChild(hudRoot);
 const hud = createHud(hudRoot, aiName);
-const chat = createChatPanel(hudRoot, 'The Model', TICK_RATE);
+// Typed messages go only to the General's reply call (D-027), never to its orders.
+const chat = createChatPanel(hudRoot, 'The Model', TICK_RATE, general && reply ? (text) => general.hear(text, game.world.tick) : undefined);
 
 const ui: UiState = { selected: new Set(), mode: { type: 'none' } };
 const groups = createGroups();
@@ -531,6 +538,8 @@ window.addEventListener('keydown', () => { music.start(); if (!waitingForStart) 
 const held = new Set<string>();
 window.addEventListener('keyup', (e) => held.delete(e.key));
 window.addEventListener('keydown', (e) => {
+  // Typing in the chat box (or any field) is text, not hotkeys.
+  if (isTypingTarget(e.target)) return;
   const k = e.key.toLowerCase();
   if (e.key.startsWith('Arrow')) { held.add(e.key); return; }
   if (k === ' ') { paused = !paused; e.preventDefault(); return; }
@@ -609,6 +618,7 @@ hud.onAlertTap(([x, y]) => centerOn(x, y));
 let accumulator = 0;
 let seenRejections = 0;
 let seenTurns = 0;
+let seenTalk = 0;
 let offlineWarned = false;
 const stats = createStats();
 let summaryShown = false;
@@ -647,6 +657,12 @@ function frame(now: number): void {
     }
     if (!blind) for (const m of turn.chat) { const clean = filterChat(m); if (clean) chat.push(turn.tick, clean); }
   }
+  // Player chat and the General's replies (D-027); the reply is already filtered.
+  for (; general && seenTalk < general.talk.length; seenTalk++) {
+    const t = general.talk[seenTalk]!;
+    if (t.text) chat.push(t.tick, t.text, t.from);
+  }
+  if (general) chat.setTyping(general.talk.at(-1)?.from === 'player');
   for (; seenRejections < game.rejected.length; seenRejections++) {
     const r = game.rejected[seenRejections]!;
     if (r.cmd.faction === 'human' && !humanBot) hud.message(`✗ ${r.cmd.command.type}: ${r.reason}`);
@@ -690,7 +706,8 @@ function frame(now: number): void {
       el.querySelector('#save-replay')?.addEventListener('click', () => {
         // Seed + command log + versions: enough to re-run the match exactly. Plus who the opponent was and,
         // for an LLM General, what it decided and said each turn (#49).
-        const record = { ...toReplay(game), opponent, ...(general ? { general: turnRecords(general.log) } : {}) };
+        const record = { ...toReplay(game), opponent, ...(general ? { general: turnRecords(general.log) } : {}),
+          ...(general && general.talk.length > 0 ? { talk: talkRecords(general.talk) } : {}) };
         const blob = new Blob([JSON.stringify(record)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);

@@ -33,6 +33,17 @@ export interface Replay {
   opponent?: OpponentInfo;
   /** The LLM General's turns (#49), for the record; not needed to re-run the match. */
   general?: GeneralTurnRecord[];
+  /** Player chat with the General and its replies (D-027), for the record. Never commands; not needed to re-run the match. */
+  talk?: TalkRecord[];
+}
+
+/** One chat line as saved in a replay: the player's message (cleaned) or the General's reply (filtered). */
+export interface TalkRecord {
+  tick: number;
+  from: 'player' | 'general';
+  /** null when the General didn't answer. */
+  text: string | null;
+  error?: string;
 }
 
 /** One LLM General turn as saved in a replay: what it decided and said, without the raw reply. */

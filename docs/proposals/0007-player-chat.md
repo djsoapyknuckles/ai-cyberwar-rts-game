@@ -98,6 +98,6 @@ All four answered 2026-10-30, each as recommended (D-027).
 1. ✅ Owner decisions; `docs/DECISIONS.md` entry (D-027).
 2. ✅ Reply call: prompt, schema, `createReplyBrain()` for Ollama and the OpenAI-compatible client, tests 2–3.
 3. ✅ General: player messages, rate limit, "command call first", the 20-reply cap, tests 1, 4, 5.
-4. Chat panel input box and "typing…" state; replay file field.
+4. ✅ Chat panel input box and "typing…" state; replay file field.
 5. `npm run llm-chat` eval; owner reads one transcript.
 6. Later (decision 3): Voxta voice replies, after a spike on a second Voxta chat.

@@ -201,6 +201,15 @@ kbd { font: 600 11px var(--font-mono); color: #fff; padding: 1px 5px; border-rad
 #hud-chat.fresh .chat-log > :not(:last-child) { display: none; }
 #hud-chat.open .chat-log { margin-top: 4px; }
 #hud-chat.folded { padding: 4px 10px; }
+/* The chat box (D-027) and "typing…" show only in the open panel. */
+#hud-chat:not(.open) .chat-input, #hud-chat:not(.open) .chat-typing { display: none; }
+#hud-chat .chat-you b { color: var(--human); }
+#hud-chat .chat-input { margin-top: 6px; }
+#hud-chat .chat-input input { width: 100%; box-sizing: border-box; padding: 5px 8px; background: rgba(0, 0, 0, 0.35); color: var(--text);
+  border: 1px solid rgba(255, 138, 61, 0.35); border-radius: 4px; font: 13px var(--font-ui); }
+#hud-chat .chat-input input:focus { outline: none; border-color: var(--ai); }
+#hud-chat .chat-notice:empty { display: none; }
+#hud-chat .chat-notice, #hud-chat .chat-typing { margin-top: 3px; font-size: 12px; }
 #hud-text { left: 8px; top: auto; bottom: 120px; max-width: 46vw; max-height: 70vh; overflow: auto; margin: 0; font: 12px/1.4 var(--font-mono); color: #b9d2ee; }
 #hud-tip {
   position: fixed; max-width: 320px; padding: 7px 10px; border-radius: var(--r-sm); pointer-events: none; z-index: 30;

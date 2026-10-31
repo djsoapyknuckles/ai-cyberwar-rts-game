@@ -2,13 +2,25 @@
 // module never sees the command brain, the digest or the directive, and nothing here returns commands.
 // The General hands it its own chat lines (so replies don't repeat them) and whether a command call is out
 // (the command call goes first, so chat never makes an order late).
-import { TICK_RATE, type FactionView } from '../../sim/index.ts';
+import { TICK_RATE, type FactionView, type TalkRecord } from '../../sim/index.ts';
 import { cleanPlayerMessage, REPLY_HISTORY, type ReplyBrain } from './reply.ts';
 
 /** At most one player message per 10 s of match time. */
 export const PLAYER_MESSAGE_GAP = 10 * TICK_RATE;
 /** A message still waiting for a free moment after 10 s is dropped. */
 export const REPLY_WAIT_MAX = 10 * TICK_RATE;
+
+/** Most replies per match from a paid model (cloud, or Voxta's text endpoint); a local model has no cap (D-027). */
+export const REPLY_CAP_CLOUD = 20;
+
+export function replyCapFor(local: boolean): number {
+  return local ? Infinity : REPLY_CAP_CLOUD;
+}
+
+/** The talk log as saved in a replay (D-027). */
+export function talkRecords(log: readonly TalkEntry[]): TalkRecord[] {
+  return log.map((t) => ({ tick: t.tick, from: t.from, text: t.text, ...(t.error ? { error: t.error } : {}) }));
+}
 
 /** Why a message was or wasn't sent. */
 export type HearResult = 'sent' | 'off' | 'empty' | 'too-soon' | 'busy' | 'quiet';
