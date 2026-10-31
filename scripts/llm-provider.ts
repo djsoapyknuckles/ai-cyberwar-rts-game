@@ -10,7 +10,18 @@ import { createVoxtaClient } from '../src/ai/llm/voxta.ts';
 /** Ollama's default model; a cloud provider uses its own default unless --model is given. */
 export const LOCAL_MODEL = 'qwen3:8b';
 
-export function clientFromArgs(v: { provider?: string; model?: string; url: string; 'no-think'?: boolean }): LlmClient {
+/** Thinking flags: off by default, like the browser game; `--no-think` (the old opt-out) is kept so old commands still run. */
+export type ThinkArgs = { think?: boolean; 'no-think'?: boolean };
+
+/**
+ * Whether a local model may reason before answering. Off unless `--think`: with it, qwen3 turns take 10-30 s
+ * and most miss the General's 10 s limit, so a "match" is mostly the scripted bot.
+ */
+export function ollamaThink(v: ThinkArgs): boolean {
+  return !!v.think && !v['no-think'];
+}
+
+export function clientFromArgs(v: { provider?: string; model?: string; url: string } & ThinkArgs): LlmClient {
   // D-022: a local Voxta server; its key (inference scope) comes only from VOXTA_API_KEY.
   if (v.provider === 'voxta') {
     const baseUrl = process.env.VOXTA_URL;
@@ -36,7 +47,7 @@ export function clientFromArgs(v: { provider?: string; model?: string; url: stri
       model: v.model ?? p.defaultModel, apiKey, baseUrl: p.baseUrl, headers: p.headers, provider: p.id, jsonSchema: p.jsonSchema, body: p.body,
     });
   }
-  return createOllamaClient({ model: v.model ?? LOCAL_MODEL, url: v.url, ...(v['no-think'] ? { think: false } : {}) });
+  return createOllamaClient({ model: v.model ?? LOCAL_MODEL, url: v.url, think: ollamaThink(v) });
 }
 
 /** What to check after a failed request: Ollama's server for Ollama, the key and model for everything else. */

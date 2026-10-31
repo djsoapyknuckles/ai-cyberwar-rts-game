@@ -79,11 +79,11 @@ No chat at all? The General taunts about once a minute, and the panel folds to a
 These run the General from the command line, for testing and benchmarks.
 
 ```sh
-npm run llm-turn -- --model qwen3:8b --no-think       # one turn against local Ollama; prints the reply and the time it took
-npm run llm-match -- --model qwen3:8b --no-think --human control --matches 30 --with-control   # full matches against the attack-every-turn control
+npm run llm-turn -- --model qwen3:8b                  # one turn against local Ollama; prints the reply and the time it took
+npm run llm-match -- --model qwen3:8b --human control --matches 30 --with-control   # full matches against the attack-every-turn control
 npm run llm-turn -- --provider openrouter             # one turn against OpenRouter
 ```
 
-Use `--no-think` with local qwen3 models, as the browser game does. Without it, the model reasons before every answer: a turn takes 10–30 s instead of under a second, most turns miss the 10-second limit, and the match is mostly the scripted bot.
+Like the browser game, these ask a local model to answer without reasoning first. `--think` turns reasoning on, for experiments only: a qwen3 turn then takes 10–30 s instead of about a second, most turns miss the 10-second limit, and the match is mostly the scripted bot. The old `--no-think` flag still works and changes nothing.
 
 Cloud and Voxta runs read their keys from a local `.env` file. Copy [`.env.example`](../.env.example) to `.env` and fill in only the keys you need. Git ignores `.env`. Never commit a key. Batch matches against a cloud model cost real money: at about 1.5 cents per match on the OpenRouter default, 30 matches cost about 45 cents.
