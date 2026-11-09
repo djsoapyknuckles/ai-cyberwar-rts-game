@@ -7,6 +7,8 @@ import { attackEveryTurn } from '../src/ai/llm/control.ts';
 import { pressureTest } from '../src/harness/balance.ts';
 import { matchReport, type MatchRecord } from '../src/ai/llm/report.ts';
 import { DATA_VERSION, digestView, factionView, GAME_VERSION } from '../src/sim/index.ts';
+import { toolSpecs } from '../src/ai/llm/tools.ts';
+import { generalPromptVersion, promptText, promptVersion } from '../scripts/prompt-version.ts';
 import { newGame } from './helpers.ts';
 
 // Phase 2: full matches against a real (async) model, and the Gate 2 numbers from its turn log.
@@ -92,6 +94,32 @@ describe('saved results (--out)', () => {
   it('leaves out the side that did not play', () => {
     const r = matchReport({ model: null, options: {}, matches: [rec({ general: 'control' })] });
     expect(r.summary).toMatchObject({ llm: null, control: { winPct: 100 }, gap: null, stats: null });
+    expect(r.promptVersion).toBeNull();
+  });
+
+  it('carries the prompt fingerprint, so two result files can be compared safely (#50)', () => {
+    const r = matchReport({ model: 'stub', promptVersion: 'abcd1234', options: {}, matches: [rec({})] });
+    expect(r.promptVersion).toBe('abcd1234');
+  });
+});
+
+describe('prompt fingerprint (#50)', () => {
+  it('is 8 hex characters and the same for the same prompt', () => {
+    expect(generalPromptVersion('ai')).toMatch(/^[0-9a-f]{8}$/);
+    expect(generalPromptVersion('ai')).toBe(generalPromptVersion('ai'));
+    expect(promptVersion(promptText('ai'))).toBe(generalPromptVersion('ai'));
+  });
+
+  it('changes when one word of a tool description changes', () => {
+    const text = promptText('ai');
+    const description = toolSpecs('ai').find((t) => t.name === 'attack_sector')!.description;
+    expect(text).toContain(description);
+    expect(promptVersion(text.replace('waves', 'groups'))).not.toBe(promptVersion(text));
+  });
+
+  it('differs by faction and by prompt mode (JSON turn vs native tools)', () => {
+    expect(generalPromptVersion('human')).not.toBe(generalPromptVersion('ai'));
+    expect(generalPromptVersion('ai', 'tools')).not.toBe(generalPromptVersion('ai'));
   });
 
   it('keeps a real General turn log and survives a JSON round trip (no network: stub brain)', async () => {

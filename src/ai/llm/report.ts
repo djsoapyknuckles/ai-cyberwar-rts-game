@@ -28,6 +28,8 @@ export interface MatchReport {
   dataVersion: number;
   /** Client name, e.g. `ollama:qwen3:8b`; null for a control-only run. */
   model: string | null;
+  /** Fingerprint of the General's prompt and tool schema (#50); compare results only when it matches. Null without a model. */
+  promptVersion: string | null;
   options: Record<string, unknown>;
   matches: MatchRecord[];
   summary: {
@@ -49,7 +51,9 @@ export function sideSummary(records: MatchRecord[], general: MatchRecord['genera
   return { matches: mine.length, wins, winPct: Math.round((wins * 100) / mine.length) };
 }
 
-export function matchReport(input: { model: string | null; options: Record<string, unknown>; matches: MatchRecord[] }): MatchReport {
+export function matchReport(input: {
+  model: string | null; promptVersion?: string | null; options: Record<string, unknown>; matches: MatchRecord[];
+}): MatchReport {
   const { matches } = input;
   const llm = sideSummary(matches, 'llm');
   const control = sideSummary(matches, 'control');
@@ -59,7 +63,8 @@ export function matchReport(input: { model: string | null; options: Record<strin
     byOpponent[name] = { llm: sideSummary(vs, 'llm'), control: sideSummary(vs, 'control') };
   }
   return {
-    gameVersion: GAME_VERSION, dataVersion: DATA_VERSION, model: input.model, options: input.options, matches,
+    gameVersion: GAME_VERSION, dataVersion: DATA_VERSION, model: input.model, promptVersion: input.promptVersion ?? null,
+    options: input.options, matches,
     summary: {
       llm, control, byOpponent,
       gap: llm && control ? llm.winPct - control.winPct : null,
