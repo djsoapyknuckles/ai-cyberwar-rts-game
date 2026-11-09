@@ -9,7 +9,8 @@
 //   key (chat scope) from VOXTA_API_KEY; first character if --character is not given.
 // --think: let a local model reason before answering (off by default, like the browser game; slow, most turns run late).
 // --with-control: also play the control on the same seeds and report the gap. --control: control only, no model.
-// --out: also save results, every General turn log and the summary as JSON (with game + data version).
+// --out: also save results, every General turn log and the summary as JSON (with game + data version and the
+//   prompt fingerprint: compare two files only when their promptVersion matches, #50).
 // Gate 2 (D-018): npm run llm-match -- --human control --matches 30 --with-control. The control-vs-control
 // baseline B absorbs faction balance; the LLM must win at least B + 15 points.
 import { writeFileSync } from 'node:fs';
@@ -18,6 +19,7 @@ import { createLlmBrain } from '../src/ai/llm/client.ts';
 import { createVoxtaBrain, VOXTA_TURN_TIMEOUT } from '../src/ai/llm/voxta-brain.ts';
 import { createVoxtaChat } from '../src/ai/llm/voxta-chat.ts';
 import { clientFromArgs } from './llm-provider.ts';
+import { generalPromptVersion } from './prompt-version.ts';
 import { createControl } from '../src/ai/llm/control.ts';
 import { createGeneral, type TurnLog } from '../src/ai/llm/general.ts';
 import { matchReport, type MatchRecord } from '../src/ai/llm/report.ts';
@@ -110,7 +112,8 @@ const model = (seed: number) => {
 const control = (seed: number) => createControl('ai', base, seed);
 const runModel = !values.control;
 const runControl = values.control || values['with-control'];
-console.log(`${runModel ? client.name : 'control'} (base ${base.name}) vs ${opponents.map((o) => o.name).join(', ')}, ${n} seeds each`);
+const promptVersion = runModel ? generalPromptVersion('ai', voxtaChat ? 'tools' : 'json') : null;
+console.log(`${runModel ? `${client.name}, prompt ${promptVersion}` : 'control'} (base ${base.name}) vs ${opponents.map((o) => o.name).join(', ')}, ${n} seeds each`);
 for (const human of opponents) {
   if (runModel) await play('llm', model, human, true);
   if (runControl) await play('control', control, human, false);
@@ -119,7 +122,7 @@ for (const human of opponents) {
 }
 // The URL is left out of the saved options: it may carry credentials.
 const { url: _url, ...options } = values;
-const report = matchReport({ model: runModel ? client.name : null, options, matches: records });
+const report = matchReport({ model: runModel ? client.name : null, promptVersion, options, matches: records });
 const { llm, control: ctl, gap, stats: s } = report.summary;
 if (llm && s) {
   console.log(`General ${llm.winPct}% overall | invalid-command rate ${s.invalidPct}% (${s.rejected}/${s.orders}) | latency p50 ${s.p50 ?? '-'} s, p95 ${s.p95 ?? '-'} s`);
@@ -132,5 +135,6 @@ if (llm && ctl) {
 }
 if (values.out) {
   writeFileSync(values.out, JSON.stringify(report, null, 2) + '\n');
-  console.log(`saved ${report.matches.length} matches to ${values.out} (game ${report.gameVersion}, data v${report.dataVersion})`);
+  console.log(`saved ${report.matches.length} matches to ${values.out} (game ${report.gameVersion}, data v${report.dataVersion}`
+    + `${promptVersion ? `, prompt ${promptVersion}` : ''})`);
 }
