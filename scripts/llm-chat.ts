@@ -8,6 +8,7 @@ import { createReplyBrain, replySystemPrompt } from '../src/ai/llm/reply.ts';
 import { DATA_VERSION, GAME_VERSION } from '../src/sim/index.ts';
 import { flagReply, PROBES } from './llm-chat-probes.ts';
 import { clientFromArgs, failureHint } from './llm-provider.ts';
+import { replyPromptVersion } from './prompt-version.ts';
 
 const { values } = parseArgs({
   options: {
@@ -42,7 +43,8 @@ async function ask(kind: string, thread: boolean, message: string, youSaid: stri
   return row.reply;
 }
 
-console.log(`model ${client.name}; reply prompt ${replySystemPrompt('ai').length} chars\n`);
+const promptVersion = replyPromptVersion();
+console.log(`model ${client.name}; reply prompt ${replySystemPrompt('ai').length} chars, prompt ${promptVersion}\n`);
 for (const p of PROBES) await ask(p.kind, false, p.text, [], []);
 console.log('\nOne conversation, with history:');
 const youSaid: string[] = [];
@@ -59,6 +61,6 @@ const silent = rows.filter((r) => !r.error && r.reply === null).length;
 console.log(`\n${rows.length} messages: ${rows.length - errors - silent} replies, ${silent} empty, ${errors} errors, ${flagged} flagged. Flags are hints: read the lines.`);
 if (errors === rows.length) console.log(failureHint(values));
 if (values.out) {
-  writeFileSync(values.out, JSON.stringify({ gameVersion: GAME_VERSION, dataVersion: DATA_VERSION, model: client.name, prompt: replySystemPrompt('ai'), rows }, null, 2) + '\n');
-  console.log(`saved ${rows.length} replies to ${values.out} (game ${GAME_VERSION}, data v${DATA_VERSION})`);
+  writeFileSync(values.out, JSON.stringify({ gameVersion: GAME_VERSION, dataVersion: DATA_VERSION, promptVersion, model: client.name, prompt: replySystemPrompt('ai'), rows }, null, 2) + '\n');
+  console.log(`saved ${rows.length} replies to ${values.out} (game ${GAME_VERSION}, data v${DATA_VERSION}, prompt ${promptVersion})`);
 }

@@ -4,6 +4,7 @@
 // Node only (node:crypto); the browser never needs it.
 import { createHash } from 'node:crypto';
 import { systemPrompt } from '../src/ai/llm/prompt.ts';
+import { REPLY_SCHEMA, replySystemPrompt } from '../src/ai/llm/reply.ts';
 import { turnSchema } from '../src/ai/llm/tools.ts';
 import { voxtaTools } from '../src/ai/llm/voxta-brain.ts';
 import type { Faction } from '../src/sim/index.ts';
@@ -24,4 +25,14 @@ export function promptVersion(text: string): string {
 
 export function generalPromptVersion(faction: Faction, mode: 'json' | 'tools' = 'json'): string {
   return promptVersion(promptText(faction, mode));
+}
+
+/** Everything fixed that the chat reply call is sent (#97): its system prompt plus the reply schema. */
+export function replyPromptText(): string {
+  return `${replySystemPrompt('ai')}\n${JSON.stringify(REPLY_SCHEMA)}`;
+}
+
+/** The reply call's fingerprint, so `llm-chat` transcripts can be matched to a reply-prompt change. */
+export function replyPromptVersion(): string {
+  return promptVersion(replyPromptText());
 }

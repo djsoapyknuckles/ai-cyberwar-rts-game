@@ -5,6 +5,7 @@
 import { parseArgs } from 'node:util';
 import { createLlmBrain } from '../src/ai/llm/client.ts';
 import { clientFromArgs, failureHint } from './llm-provider.ts';
+import { generalPromptVersion } from './prompt-version.ts';
 import { planTurn } from '../src/ai/llm/plan.ts';
 import { systemPrompt } from '../src/ai/llm/prompt.ts';
 import { parseTurn } from '../src/ai/llm/tools.ts';
@@ -41,7 +42,7 @@ const digest = digestView(view);
 const client = clientFromArgs(values);
 const brain = createLlmBrain(client, faction, { timeoutMs: 120_000 });
 
-console.log(`model ${client.name}, ${faction} at ${digest.t}; system prompt ${systemPrompt(faction).length} chars, digest ${JSON.stringify(digest).length} chars`);
+console.log(`model ${client.name}, ${faction} at ${digest.t}; system prompt ${systemPrompt(faction).length} chars, prompt ${generalPromptVersion(faction)}, digest ${JSON.stringify(digest).length} chars`);
 if (values.digest) console.log(`digest: ${JSON.stringify(digest)}`);
 const start = performance.now();
 let reply: unknown;
