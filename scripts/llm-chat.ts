@@ -4,10 +4,10 @@
 // Usage: npm run llm-chat -- [--provider ollama|openai|openrouter|voxta] [--model qwen3:8b] [--think] [--out chat.json]
 import { writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { createReplyBrain, replySystemPrompt } from '../src/ai/llm/reply.ts';
+import { createReplyBrain, REPLY_SCHEMA, replySystemPrompt, replyUserPrompt } from '../src/ai/llm/reply.ts';
 import { DATA_VERSION, GAME_VERSION } from '../src/sim/index.ts';
 import { flagReply, PROBES } from './llm-chat-probes.ts';
-import { clientFromArgs, failureHint } from './llm-provider.ts';
+import { clientFromArgs, failureHint, warmUp } from './llm-provider.ts';
 
 const { values } = parseArgs({
   options: {
@@ -42,7 +42,16 @@ async function ask(kind: string, thread: boolean, message: string, youSaid: stri
   return row.reply;
 }
 
-console.log(`model ${client.name}; reply prompt ${replySystemPrompt('ai').length} chars\n`);
+console.log(`model ${client.name}; reply prompt ${replySystemPrompt('ai').length} chars`);
+// #95: load the model first, so a cold Ollama doesn't turn every 8 s probe into a TimeoutError. Not a probe:
+// not printed as one, counted or saved.
+process.stdout.write(`warming up ${client.name}... `);
+const warm = await warmUp(client, {
+  system: replySystemPrompt('ai'),
+  user: replyUserPrompt({ clock: '0:00', youSaid: [], theySaid: ['gl hf'] }),
+  schema: REPLY_SCHEMA,
+});
+console.log(warm.error ? `failed after ${(warm.ms / 1000).toFixed(0)} s (${warm.error}); running the probes anyway\n` : `${(warm.ms / 1000).toFixed(0)} s\n`);
 for (const p of PROBES) await ask(p.kind, false, p.text, [], []);
 console.log('\nOne conversation, with history:');
 const youSaid: string[] = [];

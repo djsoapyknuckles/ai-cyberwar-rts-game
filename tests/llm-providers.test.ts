@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { loadKey, saveKey, type KeyStorage } from '../src/ai/llm/keystore.ts';
 import { createOpenAiClient } from '../src/ai/llm/openai.ts';
 import { CLOUD_PROVIDERS, cloudProvider, promptModel } from '../src/ai/llm/providers.ts';
+import { REPLY_TIMEOUT_MS } from '../src/ai/llm/reply.ts';
+import { WARM_UP_TIMEOUT_MS, warmUp } from '../scripts/llm-provider.ts';
 
 // D-025: the cloud General's providers are a fixed list; a link names one, never an address.
 type Call = { url: string; headers: Record<string, string> };
@@ -100,5 +102,34 @@ describe('structured output (OpenRouter)', () => {
     expect(seen[0]!.response_format).toEqual({ type: 'json_object' });
     expect(seen[0]!.model).toBe('mine');
     expect(seen[0]!.messages).toHaveLength(2);
+  });
+});
+
+describe('warm-up before llm-chat probes (#95)', () => {
+  const req = { system: 's', user: 'u', schema: {} };
+
+  it('sends one request with a long timeout, not the 8 s reply limit, and times it', async () => {
+    const seen: { signal?: AbortSignal; req: unknown }[] = [];
+    const client = { name: 'stub', complete: async (r: unknown, signal?: AbortSignal) => { seen.push({ req: r, signal }); return '{"reply":"hi"}'; } };
+    let t = 1000;
+    const r = await warmUp(client, req, { timeoutMs: 120_000, now: () => (t += 46_000) });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]!.req).toBe(req);
+    expect(seen[0]!.signal).toBeInstanceOf(AbortSignal);
+    expect(r).toEqual({ ms: 46_000 });
+    expect(WARM_UP_TIMEOUT_MS).toBeGreaterThan(REPLY_TIMEOUT_MS * 10);
+  });
+
+  it('reports a failure instead of throwing, so the probes still run', async () => {
+    const client = { name: 'stub', complete: async () => { throw new Error('connect ECONNREFUSED'); } };
+    const r = await warmUp(client, req);
+    expect(r.error).toContain('ECONNREFUSED');
+    expect(typeof r.ms).toBe('number');
+  });
+
+  it('gives up after its own timeout', async () => {
+    const client = { name: 'stub', complete: (_r: unknown, signal?: AbortSignal) => new Promise<string>((_ok, fail) => signal?.addEventListener('abort', () => fail(signal.reason))) };
+    const r = await warmUp(client, req, { timeoutMs: 20 });
+    expect(r.error).toMatch(/TimeoutError|timed out|aborted/i);
   });
 });
