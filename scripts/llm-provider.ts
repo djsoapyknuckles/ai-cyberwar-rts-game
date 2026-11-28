@@ -2,7 +2,7 @@
 // OpenAI-compatible API; the key comes only from OPENAI_API_KEY (a local .env or the shell), never from args.
 // `--provider openrouter` (D-025) uses OpenRouter: OPENROUTER_API_KEY, its default model unless --model is given.
 // `--provider voxta` (D-022) uses a local Voxta server: VOXTA_API_KEY, optional VOXTA_URL (default http://localhost:5384/v1).
-import { createOllamaClient, type LlmClient } from '../src/ai/llm/client.ts';
+import { createOllamaClient, type LlmClient, type LlmRequest } from '../src/ai/llm/client.ts';
 import { createOpenAiClient } from '../src/ai/llm/openai.ts';
 import { CLOUD_PROVIDERS } from '../src/ai/llm/providers.ts';
 import { createVoxtaClient } from '../src/ai/llm/voxta.ts';
@@ -58,4 +58,24 @@ export function failureHint(v: { provider?: string; model?: string; url: string 
   }
   if (v.provider === 'voxta') return 'Is Voxta running, with VOXTA_API_KEY set if it asks for a login?';
   return `Is Ollama running at ${v.url}? Try: ollama serve, then ollama pull ${v.model ?? LOCAL_MODEL}`;
+}
+
+/**
+ * A first request can take far longer than a reply's 8 s while Ollama loads the model (46 s for qwen3:8b on a
+ * 3090, #95), so llm-chat sends one throwaway request first, with this much longer limit.
+ */
+export const WARM_UP_TIMEOUT_MS = 120_000;
+
+/** Sends `req` once and drops the answer; how long it took, and the error if it failed. Never throws. */
+export async function warmUp(
+  client: LlmClient, req: LlmRequest, opts: { timeoutMs?: number; now?: () => number } = {},
+): Promise<{ ms: number; error?: string }> {
+  const now = opts.now ?? (() => performance.now());
+  const start = now();
+  try {
+    await client.complete(req, AbortSignal.timeout(opts.timeoutMs ?? WARM_UP_TIMEOUT_MS));
+    return { ms: Math.round(now() - start) };
+  } catch (e) {
+    return { ms: Math.round(now() - start), error: String(e) };
+  }
 }
